@@ -1,0 +1,21 @@
+import React from 'react';
+
+export const Withdraw = () => {
+  return (
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-8">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        <div className="text-center">
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Withdraw</h1>
+          <p className="mt-4 text-gray-600 dark:text-gray-300">
+            Withdraw funds from your OmniVault positions
+          </p>
+        </div>
+        <div className="mt-8 card p-8 max-w-2xl mx-auto">
+          <p className="text-center text-gray-500 dark:text-gray-400">
+            Withdrawal functionality coming soon...
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+};
