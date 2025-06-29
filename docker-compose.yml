@@ -1,0 +1,38 @@
+version: '3.8'
+services:
+  solana-test-validator:
+    image: solanalabs/solana:v1.17.31
+    ports:
+      - "8899:8899"
+      - "8900:8900"
+      - "9900:9900"
+    command: >
+      solana-test-validator
+      --reset
+      --quiet
+      --rpc-port 8899
+      --rpc-bind-address 0.0.0.0
+      --faucet-port 9900
+      --faucet-sol 1000
+      --clone H3SKp4cL5rpzJDntDa2umKE9AHkGiyss1W8BNDndhHWp
+      --clone-upgradeable-program H3SKp4cL5rpzJDntDa2umKE9AHkGiyss1W8BNDndhHWp
+    volumes:
+      - solana-test-validator:/root/.local/share/solana/
+    healthcheck:
+      test: ["CMD", "solana", "cluster-version", "--url", "http://localhost:8899"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+
+  anchor-build:
+    image: projectserum/build:v0.29.0
+    volumes:
+      - ./solana-program:/app
+    working_dir: /app
+    command: bash -c "anchor build"
+    profiles:
+      - build
+
+volumes:
+  solana-test-validator: 
