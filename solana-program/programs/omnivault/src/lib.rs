@@ -1,4 +1,5 @@
 use anchor_lang::prelude::*;
+use anchor_lang::solana_program::sysvar::SysvarId;
 use anchor_spl::token::{self, Token, TokenAccount, Transfer};
 
 declare_id!("HAGPttZ592S5xv5TPrkVLPQpkNGrNPAw42kGjdR9vUc4");
@@ -285,7 +286,7 @@ pub enum RiskProfile {
     Aggressive,
 }
 
-#[derive(AnchorSerialize, AnchorDeserialize, Clone, Debug)]
+#[derive(AnchorSerialize, AnchorDeserialize, Clone, Debug, Copy)]
 pub struct ChainAllocation {
     /// Chain endpoint ID
     pub chain_eid: u32,
@@ -1680,16 +1681,10 @@ pub struct Deposit<'info> {
     )]
     pub user_token_account: Account<'info, TokenAccount>,
 
-    #[account(
-        init_if_needed,
-        payer = user,
-        associated_token::mint = user_token_account.mint,
-        associated_token::authority = vault_store
-    )]
+    #[account(mut)]
     pub vault_token_account: Account<'info, TokenAccount>,
 
     pub token_program: Program<'info, Token>,
-    pub associated_token_program: Program<'info, anchor_spl::associated_token::AssociatedToken>,
     pub system_program: Program<'info, System>,
     pub rent: Sysvar<'info, Rent>,
     pub clock: Sysvar<'info, Clock>,
@@ -1720,11 +1715,7 @@ pub struct Withdraw<'info> {
     #[account(mut)]
     pub user_token_account: Account<'info, TokenAccount>,
 
-    #[account(
-        mut,
-        associated_token::mint = user_token_account.mint,
-        associated_token::authority = vault_store
-    )]
+    #[account(mut)]
     pub vault_token_account: Account<'info, TokenAccount>,
 
     pub token_program: Program<'info, Token>,
@@ -1793,7 +1784,7 @@ pub struct UpdateYieldData<'info> {
 fn handle_yield_update(
     _vault_store: &mut VaultStore,
     params: &LzReceiveParams,
-    current_time: i64,
+    _current_time: i64,
 ) -> Result<()> {
     let payload = decode_yield_update(&params.message)?;
 
@@ -1814,7 +1805,7 @@ fn handle_yield_update(
 fn handle_strategy_instruction(
     _vault_store: &mut VaultStore,
     params: &LzReceiveParams,
-    current_time: i64,
+    _current_time: i64,
 ) -> Result<()> {
     let payload = decode_strategy_instruction(&params.message)?;
 
@@ -1839,7 +1830,7 @@ fn handle_strategy_instruction(
 fn handle_token_movement(
     vault_store: &mut VaultStore,
     params: &LzReceiveParams,
-    current_time: i64,
+    _current_time: i64,
 ) -> Result<()> {
     let payload = decode_token_movement(&params.message)?;
 
@@ -1879,7 +1870,7 @@ fn handle_token_movement(
 fn handle_position_update(
     _vault_store: &mut VaultStore,
     params: &LzReceiveParams,
-    current_time: i64,
+    _current_time: i64,
 ) -> Result<()> {
     let payload = decode_position_update(&params.message)?;
 
