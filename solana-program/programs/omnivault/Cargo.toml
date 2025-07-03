@@ -9,18 +9,23 @@ crate-type = ["cdylib", "lib"]
 name = "omnivault"
 
 [features]
-no-entrypoint = []
-no-idl = []
-no-log-ix-name = []
-cpi = ["no-entrypoint"]
+# Keep optional features available, but not enabled by default:
+no-entrypoint = []          
+no-idl = []                 
+no-log-ix-name = []         
+cpi = ["no-entrypoint"]     
+
 default = ["idl-build"]
-idl-build = ["anchor-lang/idl-build", "anchor-spl/idl-build"]
+
+idl-build = [
+    "anchor-lang/idl-build",
+    "anchor-spl/idl-build"
+]
 
 [dependencies]
-anchor-lang = { version = "0.29.0", features = ["init-if-needed"] }
-anchor-spl = { version = "0.29.0", features = ["token"] }
+anchor-lang = { version = "0.31.0", features = ["init-if-needed"] }
+anchor-spl = { version = "0.31.0", features = ["token"] }
 spl-token = { version = "3.5", features = ["no-entrypoint"] }
 spl-associated-token-account = { version = "1.1", features = ["no-entrypoint"] }
 borsh = "0.10.3"
 bytemuck = "1.14.0"
-

@@ -1,7 +1,7 @@
 version: '3.8'
 services:
   solana-test-validator:
-    image: solanalabs/solana:v1.17.31
+    image: solanalabs/solana:v2.2.19
     ports:
       - "8899:8899"
       - "8900:8900"
@@ -26,7 +26,7 @@ services:
       start_period: 30s
 
   anchor-build:
-    image: projectserum/build:v0.29.0
+    image: projectserum/build:v0.31.0
     volumes:
       - ./solana-program:/app
     working_dir: /app
