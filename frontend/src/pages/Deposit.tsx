@@ -86,30 +86,32 @@ export const Deposit: React.FC = () => {
   }, [error, clearError]);
 
   const handleDeposit = async () => {
-    if (!connected || !publicKey || !depositVault || !amount) return;
+    if (!depositVault || !amount || !isAmountValid()) return;
 
     try {
-      let txHash: string;
+      clearError();
       
+      const amountInLamports = selectedToken.symbol === 'SOL' 
+        ? service?.solToLamports(parseFloat(amount)) || 0
+        : Math.floor(parseFloat(amount) * Math.pow(10, selectedToken.decimals));
+
+      let txHash: string | null = null;
+
       if (selectedToken.symbol === 'SOL') {
-        // Convert SOL to lamports
-        const lamports = Math.floor(parseFloat(amount) * LAMPORTS_PER_SOL);
-        txHash = await depositSol(depositVault.id.toNumber(), lamports);
+        txHash = await depositSol(depositVault, amountInLamports);
       } else {
-        // Handle SPL token deposit
-        const tokenAmount = Math.floor(parseFloat(amount) * Math.pow(10, selectedToken.decimals));
         const mintAddress = new PublicKey(selectedToken.address);
-        txHash = await deposit(depositVault.id.toNumber(), tokenAmount, mintAddress);
+        txHash = await deposit(depositVault, amountInLamports, mintAddress);
       }
 
-      setLastTxHash(txHash);
-      setShowSuccess(true);
-      setAmount('');
-      
-      // Hide success message after 5 seconds
-      setTimeout(() => setShowSuccess(false), 5000);
-    } catch (err) {
-      console.error('Deposit failed:', err);
+      if (txHash) {
+        setLastTxHash(txHash);
+        setShowSuccess(true);
+        setAmount('');
+        setTimeout(() => setShowSuccess(false), 5000);
+      }
+    } catch (error) {
+      console.error('Deposit failed:', error);
     }
   };
 
@@ -175,9 +177,11 @@ export const Deposit: React.FC = () => {
             <CheckCircleIcon className="h-5 w-5 text-green-600 mr-2" />
             <div>
               <p className="text-green-800 dark:text-green-200 font-medium">Deposit Successful!</p>
-              <p className="text-green-600 dark:text-green-300 text-sm">
-                Transaction: {lastTxHash.slice(0, 8)}...{lastTxHash.slice(-8)}
-              </p>
+              {lastTxHash && (
+                <p className="text-green-600 dark:text-green-300 text-sm">
+                  Transaction: {lastTxHash.slice(0, 8)}...{lastTxHash.slice(-8)}
+                </p>
+              )}
             </div>
           </div>
         </div>

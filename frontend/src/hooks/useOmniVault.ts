@@ -33,8 +33,8 @@ export interface UseOmniVaultReturn {
   
   // Data states
   vaultStore: VaultStore | null;
-  userVaults: Vault[];
-  selectedVault: Vault | null;
+  userVaults: (Vault & { publicKey: PublicKey })[];
+  selectedVault: (Vault & { publicKey: PublicKey }) | null;
   userPosition: UserPosition | null;
   yieldTracker: YieldTracker | null;
   
@@ -45,9 +45,11 @@ export interface UseOmniVaultReturn {
   // Actions
   initialize: () => Promise<string | null>;
   createVault: (riskProfile: RiskProfile, minDeposit?: number, targetChains?: number[]) => Promise<{ tx: string; vaultId: number; vaultAddress: PublicKey } | null>;
-  deposit: (vaultId: number, amount: number, mintAddress: PublicKey) => Promise<string | null>;
-  withdraw: (vaultId: number, amount: number, mintAddress: PublicKey) => Promise<string | null>;
-  selectVault: (vault: Vault) => void;
+  deposit: (vault: Vault & { publicKey: PublicKey }, amount: number, mintAddress: PublicKey) => Promise<string | null>;
+  withdraw: (vault: Vault & { publicKey: PublicKey }, amount: number, mintAddress: PublicKey) => Promise<string | null>;
+  depositSol: (vault: Vault & { publicKey: PublicKey }, amount: number) => Promise<string | null>;
+  withdrawSol: (vault: Vault & { publicKey: PublicKey }, amount: number) => Promise<string | null>;
+  selectVault: (vault: Vault & { publicKey: PublicKey }) => void;
   refreshData: () => Promise<void>;
   
   // Cross-chain operations
@@ -90,8 +92,8 @@ export const useOmniVault = (): UseOmniVaultReturn => {
   
   // Data states
   const [vaultStore, setVaultStore] = useState<VaultStore | null>(null);
-  const [userVaults, setUserVaults] = useState<Vault[]>([]);
-  const [selectedVault, setSelectedVault] = useState<Vault | null>(null);
+  const [userVaults, setUserVaults] = useState<(Vault & { publicKey: PublicKey })[]>([]);
+  const [selectedVault, setSelectedVault] = useState<(Vault & { publicKey: PublicKey }) | null>(null);
   const [userPosition, setUserPosition] = useState<UserPosition | null>(null);
   const [yieldTracker, setYieldTracker] = useState<YieldTracker | null>(null);
   
@@ -243,49 +245,39 @@ export const useOmniVault = (): UseOmniVaultReturn => {
 
   // Load specific vault data including position and yield tracker
   const loadVaultData = useCallback(async (vaultId: number) => {
-    if (!service || !publicKey) return;
+    if (!service || !publicKey || !selectedVault) return;
     
     try {
-      const vault = await service.getVault(publicKey, vaultId);
-      if (vault) {
-        setSelectedVault(vault);
-        
-        // Load user position
-        const [vaultAddress] = service.getVaultPDA(vault.owner, vault.id.toNumber());
-        const position = await service.getUserPosition(publicKey, vaultAddress);
-        setUserPosition(position);
-        
-        // Load yield tracker
-        await loadYieldTracker(vaultId);
-      }
+      // Load user position using the selectedVault's publicKey
+      const position = await service.getUserPosition(publicKey, selectedVault.publicKey);
+      setUserPosition(position);
+      
+      // Load yield tracker
+      await loadYieldTracker(vaultId);
     } catch (err) {
       console.error('Failed to load vault data:', err);
     }
-  }, [service, publicKey]);
+  }, [service, publicKey, selectedVault]);
 
   // Load yield tracker and process chain yields
   const loadYieldTracker = useCallback(async (vaultId: number) => {
-    if (!service || !publicKey) return;
+    if (!service || !publicKey || !selectedVault) return;
     
     try {
-      const vault = await service.getVault(publicKey, vaultId);
-      if (vault) {
-        const [vaultAddress] = service.getVaultPDA(vault.owner, vault.id.toNumber());
-        const tracker = await service.getYieldTracker(vaultAddress);
+      const tracker = await service.getYieldTracker(selectedVault.publicKey);
+      
+      if (tracker) {
+        setYieldTracker(tracker);
+        setChainYields(tracker.chainYields);
         
-        if (tracker) {
-          setYieldTracker(tracker);
-          setChainYields(tracker.chainYields);
-          
-          // Find best chain based on vault's risk profile
-          const best = findBestChain(tracker.chainYields, vault.riskProfile);
-          setBestChain(best);
-        }
+        // Find best chain based on vault's risk profile
+        const best = findBestChain(tracker.chainYields, selectedVault.riskProfile);
+        setBestChain(best);
       }
     } catch (err) {
       console.error('Failed to load yield tracker:', err);
     }
-  }, [service, publicKey]);
+  }, [service, publicKey, selectedVault]);
 
   // Helper to convert risk profile object to string
   const getRiskProfileString = useCallback((riskProfile: { [key: string]: {} }): RiskProfile => {
@@ -384,7 +376,7 @@ export const useOmniVault = (): UseOmniVaultReturn => {
   }, [service, refreshData]);
 
   // Deposit into a vault
-  const deposit = useCallback(async (vaultId: number, amount: number, mintAddress: PublicKey): Promise<string | null> => {
+  const deposit = useCallback(async (vault: Vault & { publicKey: PublicKey }, amount: number, mintAddress: PublicKey): Promise<string | null> => {
     if (!service) {
       setError('Service not available');
       return null;
@@ -392,7 +384,7 @@ export const useOmniVault = (): UseOmniVaultReturn => {
 
     setIsDepositing(true);
     try {
-      const tx = await service.deposit(vaultId, amount, mintAddress);
+      const tx = await service.deposit(vault.publicKey, amount, mintAddress);
       await refreshData();
       setError(null);
       return tx;
@@ -405,8 +397,30 @@ export const useOmniVault = (): UseOmniVaultReturn => {
     }
   }, [service, refreshData]);
 
+  // Deposit SOL into a vault
+  const depositSol = useCallback(async (vault: Vault & { publicKey: PublicKey }, amount: number): Promise<string | null> => {
+    if (!service) {
+      setError('Service not available');
+      return null;
+    }
+
+    setIsDepositing(true);
+    try {
+      const tx = await service.depositSol(vault.publicKey, amount);
+      await refreshData();
+      setError(null);
+      return tx;
+    } catch (err: any) {
+      console.error('Failed to deposit SOL:', err);
+      setError(err.message || 'Failed to deposit SOL');
+      return null;
+    } finally {
+      setIsDepositing(false);
+    }
+  }, [service, refreshData]);
+
   // Withdraw from a vault
-  const withdraw = useCallback(async (vaultId: number, amount: number, mintAddress: PublicKey): Promise<string | null> => {
+  const withdraw = useCallback(async (vault: Vault & { publicKey: PublicKey }, amount: number, mintAddress: PublicKey): Promise<string | null> => {
     if (!service) {
       setError('Service not available');
       return null;
@@ -414,13 +428,35 @@ export const useOmniVault = (): UseOmniVaultReturn => {
 
     setIsWithdrawing(true);
     try {
-      const tx = await service.withdraw(vaultId, amount, mintAddress);
+      const tx = await service.withdraw(vault.publicKey, amount, mintAddress);
       await refreshData();
       setError(null);
       return tx;
     } catch (err: any) {
       console.error('Failed to withdraw:', err);
       setError(err.message || 'Failed to withdraw');
+      return null;
+    } finally {
+      setIsWithdrawing(false);
+    }
+  }, [service, refreshData]);
+
+  // Withdraw SOL from a vault
+  const withdrawSol = useCallback(async (vault: Vault & { publicKey: PublicKey }, amount: number): Promise<string | null> => {
+    if (!service) {
+      setError('Service not available');
+      return null;
+    }
+
+    setIsWithdrawing(true);
+    try {
+      const tx = await service.withdrawSol(vault.publicKey, amount);
+      await refreshData();
+      setError(null);
+      return tx;
+    } catch (err: any) {
+      console.error('Failed to withdraw SOL:', err);
+      setError(err.message || 'Failed to withdraw SOL');
       return null;
     } finally {
       setIsWithdrawing(false);
@@ -490,7 +526,7 @@ export const useOmniVault = (): UseOmniVaultReturn => {
   }, [service, refreshData]);
 
   // Select a vault and load its data
-  const selectVault = useCallback(async (vault: Vault) => {
+  const selectVault = useCallback(async (vault: Vault & { publicKey: PublicKey }) => {
     setSelectedVault(vault);
     await loadVaultData(vault.id.toNumber());
   }, [loadVaultData]);
@@ -543,6 +579,8 @@ export const useOmniVault = (): UseOmniVaultReturn => {
     createVault,
     deposit,
     withdraw,
+    depositSol,
+    withdrawSol,
     selectVault,
     refreshData,
     

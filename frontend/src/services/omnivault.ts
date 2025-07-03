@@ -241,16 +241,13 @@ export class OmniVaultService {
   }
 
   // Deposit SOL into a vault
-  async depositSol(vaultId: number, amount: number): Promise<string> {
+  async depositSol(vault: PublicKey, amount: number): Promise<string> {
     const user = this.provider.wallet.publicKey;
     
     if (!user) {
       throw new Error('Wallet not connected');
     }
 
-    const vaultOwner = user; // For simplicity, assuming user owns the vault
-    
-    const [vault] = this.getVaultPDA(vaultOwner, vaultId);
     const [userPosition] = this.getUserPositionPDA(user, vault);
     const [vaultStore] = this.getVaultStorePDA();
 
@@ -274,16 +271,13 @@ export class OmniVaultService {
   }
 
   // Withdraw SOL from a vault
-  async withdrawSol(vaultId: number, amount: number): Promise<string> {
+  async withdrawSol(vault: PublicKey, amount: number): Promise<string> {
     const user = this.provider.wallet.publicKey;
     
     if (!user) {
       throw new Error('Wallet not connected');
     }
 
-    const vaultOwner = user; // For simplicity, assuming user owns the vault
-    
-    const [vault] = this.getVaultPDA(vaultOwner, vaultId);
     const [userPosition] = this.getUserPositionPDA(user, vault);
     const [vaultStore] = this.getVaultStorePDA();
 
@@ -306,16 +300,13 @@ export class OmniVaultService {
   }
 
   // Deposit tokens into a vault
-  async deposit(vaultId: number, amount: number, mintAddress: PublicKey): Promise<string> {
+  async deposit(vault: PublicKey, amount: number, mintAddress: PublicKey): Promise<string> {
     const user = this.provider.wallet.publicKey;
     
     if (!user) {
       throw new Error('Wallet not connected');
     }
 
-    const vaultOwner = user; // For simplicity, assuming user owns the vault
-    
-    const [vault] = this.getVaultPDA(vaultOwner, vaultId);
     const [userPosition] = this.getUserPositionPDA(user, vault);
     const [vaultStore] = this.getVaultStorePDA();
     
@@ -363,16 +354,13 @@ export class OmniVaultService {
   }
 
   // Withdraw tokens from a vault
-  async withdraw(vaultId: number, amount: number, mintAddress: PublicKey): Promise<string> {
+  async withdraw(vault: PublicKey, amount: number, mintAddress: PublicKey): Promise<string> {
     const user = this.provider.wallet.publicKey;
     
     if (!user) {
       throw new Error('Wallet not connected');
     }
 
-    const vaultOwner = user; // For simplicity, assuming user owns the vault
-    
-    const [vault] = this.getVaultPDA(vaultOwner, vaultId);
     const [userPosition] = this.getUserPositionPDA(user, vault);
     const [vaultStore] = this.getVaultStorePDA();
     
@@ -534,6 +522,11 @@ export class OmniVaultService {
       const account = await this.program.account.userPosition.fetch(userPosition);
       return account as UserPosition;
     } catch (error) {
+      // This is expected when user hasn't deposited to this vault yet
+      if (error instanceof Error && error.message?.includes('Account does not exist')) {
+        console.log(`No user position found for vault ${vault.toBase58()} - user hasn't deposited yet`);
+        return null;
+      }
       console.error('Error fetching user position:', error);
       return null;
     }
@@ -552,7 +545,7 @@ export class OmniVaultService {
   }
 
   // Fetch all vaults for a user
-  async getUserVaults(user: PublicKey): Promise<Vault[]> {
+  async getUserVaults(user: PublicKey): Promise<(Vault & { publicKey: PublicKey })[]> {
     try {
       console.log('Fetching vaults for user:', user.toBase58());
       
@@ -578,7 +571,11 @@ export class OmniVaultService {
         console.log('Sample vault structure:', allVaults[0]);
       }
       
-      return vaults.map((vault: any) => vault.account as Vault);
+      // Return vaults with their PublicKey included
+      return vaults.map((vault: any) => ({
+        ...(vault.account as Vault),
+        publicKey: vault.publicKey
+      }));
     } catch (error) {
       console.error('Error fetching user vaults:', error);
       return [];

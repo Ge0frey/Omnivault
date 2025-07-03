@@ -107,32 +107,36 @@ export const Withdraw: React.FC = () => {
   };
 
   const handleWithdraw = async () => {
-    if (!connected || !publicKey || !withdrawVault || !amount || !userPosition) return;
+    if (!withdrawVault || !amount || !userPosition || !isAmountValid()) return;
 
     try {
-      let txHash: string;
+      clearError();
+      
+      const amountInLamports = selectedToken.symbol === 'SOL' 
+        ? service?.solToLamports(parseFloat(amount)) || 0
+        : Math.floor(parseFloat(amount) * Math.pow(10, selectedToken.decimals));
+
+      let txHash: string | null = null;
       
       if (selectedToken.symbol === 'SOL') {
-        // Convert SOL to lamports
-        const lamports = Math.floor(parseFloat(amount) * LAMPORTS_PER_SOL);
-        txHash = await withdrawSol(withdrawVault.id.toNumber(), lamports);
+        txHash = await withdrawSol(withdrawVault, amountInLamports);
       } else {
-        // Handle SPL token withdrawal
-        const tokenAmount = Math.floor(parseFloat(amount) * Math.pow(10, selectedToken.decimals));
         const mintAddress = new PublicKey(selectedToken.address);
-        txHash = await withdraw(withdrawVault.id.toNumber(), tokenAmount, mintAddress);
+        txHash = await withdraw(withdrawVault, amountInLamports, mintAddress);
       }
 
-      setLastTxHash(txHash);
-      setShowSuccess(true);
-      setAmount('');
-      setShowConfirmation(false);
-      
-      // Refresh user position
-      await fetchUserPosition();
-      
-      // Hide success message after 5 seconds
-      setTimeout(() => setShowSuccess(false), 5000);
+      if (txHash) {
+        setLastTxHash(txHash);
+        setShowSuccess(true);
+        setAmount('');
+        setShowConfirmation(false);
+        
+        // Refresh user position
+        await fetchUserPosition();
+        
+        // Hide success message after 5 seconds
+        setTimeout(() => setShowSuccess(false), 5000);
+      }
     } catch (err) {
       console.error('Withdrawal failed:', err);
       setShowConfirmation(false);
@@ -215,9 +219,11 @@ export const Withdraw: React.FC = () => {
             <CheckCircleIcon className="h-5 w-5 text-green-600 mr-2" />
             <div>
               <p className="text-green-800 dark:text-green-200 font-medium">Withdrawal Successful!</p>
-              <p className="text-green-600 dark:text-green-300 text-sm">
-                Transaction: {lastTxHash.slice(0, 8)}...{lastTxHash.slice(-8)}
-              </p>
+              {lastTxHash && (
+                <p className="text-green-600 dark:text-green-300 text-sm">
+                  Transaction: {lastTxHash.slice(0, 8)}...{lastTxHash.slice(-8)}
+                </p>
+              )}
             </div>
           </div>
         </div>
