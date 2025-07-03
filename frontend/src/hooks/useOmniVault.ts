@@ -15,7 +15,7 @@ import type {
   RebalanceTriggeredEvent,
 } from '../services/omnivault';
 import { RiskProfile } from '../services/omnivault';
-import { createOmniVaultService, CHAIN_IDS } from '../services/omnivault';
+import { createOmniVaultService } from '../services/omnivault';
 
 export interface UseOmniVaultReturn {
   // Service instance
@@ -355,10 +355,10 @@ export const useOmniVault = (): UseOmniVaultReturn => {
 
     setIsCreatingVault(true);
     try {
-      // Note: targetChains parameter is currently not supported in the service
       const result = await service.createVault(
         riskProfile, 
-        minDeposit
+        minDeposit,
+        targetChains
       );
       await refreshData();
       setError(null);

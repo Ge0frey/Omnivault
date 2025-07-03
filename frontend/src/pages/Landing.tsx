@@ -1,6 +1,5 @@
-import React from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRightIcon, ChartBarIcon, GlobeAltIcon, ShieldCheckIcon } from '@heroicons/react/24/outline';
+import { ArrowRightIcon, ChartBarIcon, ShieldCheckIcon, GlobeAltIcon } from '@heroicons/react/24/outline';
 
 const features = [
   {

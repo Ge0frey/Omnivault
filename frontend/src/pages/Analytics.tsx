@@ -1,4 +1,4 @@
-import React from 'react';
+import { ChartBarIcon, ArrowTrendingUpIcon } from '@heroicons/react/24/outline';
 
 export const Analytics = () => {
   return (

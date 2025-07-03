@@ -1,4 +1,5 @@
-import React, { FC, ReactNode, useMemo } from 'react';
+import { useMemo } from 'react';
+import type { FC, ReactNode } from 'react';
 import { ConnectionProvider, WalletProvider as SolanaWalletProvider } from '@solana/wallet-adapter-react';
 import { WalletAdapterNetwork } from '@solana/wallet-adapter-base';
 import { WalletModalProvider } from '@solana/wallet-adapter-react-ui';
@@ -17,19 +18,23 @@ interface WalletProviderProps {
 }
 
 export const WalletProvider: FC<WalletProviderProps> = ({ children }) => {
-  // The network can be set to 'devnet', 'testnet', or 'mainnet-beta'.
-  const network = WalletAdapterNetwork.Devnet;
-
-  // You can also provide a custom RPC endpoint.
-  const endpoint = useMemo(() => clusterApiUrl(network), [network]);
+  // For development, use localhost where the test validator is running
+  const endpoint = useMemo(() => {
+    // Check if we're in development mode
+    if (import.meta.env.DEV) {
+      return 'http://localhost:8899';
+    }
+    // For production, use devnet
+    return clusterApiUrl(WalletAdapterNetwork.Devnet);
+  }, []);
 
   const wallets = useMemo(
     () => [
       new PhantomWalletAdapter(),
-      new SolflareWalletAdapter({ network }),
+      new SolflareWalletAdapter(),
       new TorusWalletAdapter(),
     ],
-    [network]
+    []
   );
 
   return (

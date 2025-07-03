@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { WalletMultiButton } from '@solana/wallet-adapter-react-ui';
 import { useOmniVault } from '../hooks/useOmniVault';
@@ -78,6 +78,15 @@ export const Dashboard = () => {
       default:
         return 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200';
     }
+  };
+
+  const getRiskProfileName = (riskProfile: any): string => {
+    if (typeof riskProfile === 'object' && riskProfile !== null) {
+      if ('conservative' in riskProfile) return 'Conservative';
+      if ('moderate' in riskProfile) return 'Moderate';
+      if ('aggressive' in riskProfile) return 'Aggressive';
+    }
+    return 'Unknown';
   };
 
   if (!connected) {
@@ -269,12 +278,12 @@ export const Dashboard = () => {
                         Vault #{vault.id.toString()}
                       </h4>
                       <span className={`px-2 py-1 rounded-full text-xs font-medium ${getRiskProfileBadgeColor(vault.riskProfile as RiskProfile)}`}>
-                        {vault.riskProfile}
+                        {getRiskProfileName(vault.riskProfile)}
                       </span>
                     </div>
                     <div className="flex justify-between text-sm text-gray-500 dark:text-gray-400">
                       <span>Deposits: {(vault.totalDeposits.toNumber() / 1e9).toFixed(4)} SOL</span>
-                      <span>Created: {new Date(vault.createdAt.toNumber() * 1000).toLocaleDateString()}</span>
+                      <span>Created: {new Date(vault.lastRebalance.toNumber() * 1000).toLocaleDateString()}</span>
                     </div>
                   </div>
                 ))}
@@ -306,7 +315,7 @@ export const Dashboard = () => {
                       Vault #{selectedVault.id.toString()}
                     </h4>
                     <span className={`px-3 py-1 rounded-full text-sm font-medium ${getRiskProfileBadgeColor(selectedVault.riskProfile as RiskProfile)}`}>
-                      {selectedVault.riskProfile}
+                      {getRiskProfileName(selectedVault.riskProfile)}
                     </span>
                   </div>
                   
@@ -326,7 +335,7 @@ export const Dashboard = () => {
                     <div>
                       <dt className="text-sm font-medium text-gray-500 dark:text-gray-400">Created</dt>
                       <dd className="mt-1 text-sm text-gray-900 dark:text-white">
-                        {new Date(selectedVault.createdAt.toNumber() * 1000).toLocaleDateString()}
+                        {new Date(selectedVault.lastRebalance.toNumber() * 1000).toLocaleDateString()}
                       </dd>
                     </div>
                     <div>

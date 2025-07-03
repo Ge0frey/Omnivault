@@ -1,50 +1,34 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { 
-  ArrowPathIcon, 
-  ChartBarIcon, 
-  ExclamationTriangleIcon,
+  ArrowTrendingUpIcon, 
+  ChartBarIcon,
   CheckCircleIcon,
   ClockIcon,
-  ArrowTrendingUpIcon,
+  BoltIcon,
   GlobeAltIcon,
-  BoltIcon
+  ArrowPathIcon
 } from '@heroicons/react/24/outline';
 import { useOmniVault } from '../hooks/useOmniVault';
-import { CHAIN_IDS } from '../services/omnivault';
 
 interface YieldMonitorProps {
   vaultId?: number;
 }
 
-export const YieldMonitor: React.FC<YieldMonitorProps> = ({ vaultId }) => {
+export const YieldMonitor: React.FC<YieldMonitorProps> = ({ vaultId: _vaultId }) => {
   const {
     selectedVault,
     chainYields,
     bestChain,
-    yieldTracker,
+    recentEvents,
     isQuerying,
     isRebalancing,
     queryCrossChainYields,
     rebalanceVault,
-    getChainName,
-    recentEvents,
+    getChainName
   } = useOmniVault();
 
-  const [autoRefresh, setAutoRefresh] = useState(true);
-  const [refreshInterval, setRefreshInterval] = useState(300000); // 5 minutes
-
-  // Auto-refresh yields
-  useEffect(() => {
-    if (!autoRefresh || !selectedVault) return;
-
-    const interval = setInterval(() => {
-      if (selectedVault) {
-        queryCrossChainYields(selectedVault.id.toNumber());
-      }
-    }, refreshInterval);
-
-    return () => clearInterval(interval);
-  }, [autoRefresh, refreshInterval, selectedVault, queryCrossChainYields]);
+  // Auto-refresh functionality
+  const [refreshInterval] = React.useState<number>(30000); // 30 seconds
 
   const handleManualRefresh = () => {
     if (selectedVault) {
@@ -114,15 +98,6 @@ export const YieldMonitor: React.FC<YieldMonitorProps> = ({ vaultId }) => {
             Cross-Chain Yield Monitor
           </h3>
           <div className="flex items-center space-x-3">
-            <label className="flex items-center">
-              <input
-                type="checkbox"
-                checked={autoRefresh}
-                onChange={(e) => setAutoRefresh(e.target.checked)}
-                className="mr-2"
-              />
-              <span className="text-sm text-gray-600 dark:text-gray-300">Auto-refresh</span>
-            </label>
             <button
               onClick={handleManualRefresh}
               disabled={isQuerying}
@@ -217,17 +192,17 @@ export const YieldMonitor: React.FC<YieldMonitorProps> = ({ vaultId }) => {
                 </tr>
               </thead>
               <tbody className="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-700">
-                {chainYields.map((yield) => (
-                  <tr key={yield.chainId} className={yield.chainId === selectedVault.currentBestChain ? 'bg-primary-50 dark:bg-primary-900/20' : ''}>
+                {chainYields.map((chainYield) => (
+                  <tr key={chainYield.chainId} className={chainYield.chainId === selectedVault.currentBestChain ? 'bg-primary-50 dark:bg-primary-900/20' : ''}>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
-                        {yield.chainId === selectedVault.currentBestChain && (
+                        {chainYield.chainId === selectedVault.currentBestChain && (
                           <CheckCircleIcon className="h-4 w-4 text-green-500 mr-2" />
                         )}
                         <span className="text-sm font-medium text-gray-900 dark:text-white">
-                          {getChainName(yield.chainId)}
+                          {getChainName(chainYield.chainId)}
                         </span>
-                        {bestChain?.chainId === yield.chainId && yield.chainId !== selectedVault.currentBestChain && (
+                        {bestChain?.chainId === chainYield.chainId && chainYield.chainId !== selectedVault.currentBestChain && (
                           <span className="ml-2 px-2 py-1 text-xs font-medium bg-yellow-100 text-yellow-800 rounded-full">
                             Best
                           </span>
@@ -236,26 +211,26 @@ export const YieldMonitor: React.FC<YieldMonitorProps> = ({ vaultId }) => {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className="text-sm text-gray-900 dark:text-white font-medium">
-                        {formatAPY(yield.apy.toNumber())}
+                        {formatAPY(chainYield.apy.toNumber())}
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className="text-sm text-gray-900 dark:text-white">
-                        {formatTVL(yield.tvl.toNumber())}
+                        {formatTVL(chainYield.tvl.toNumber())}
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${getRiskColor(yield.riskScore.toNumber())}`}>
-                        {getRiskLabel(yield.riskScore.toNumber())}
+                      <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${getRiskColor(chainYield.riskScore.toNumber())}`}>
+                        {getRiskLabel(chainYield.riskScore.toNumber())}
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                      {getTimeSinceUpdate(yield.lastUpdated.toNumber())}
+                      {getTimeSinceUpdate(chainYield.lastUpdated.toNumber())}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      {yield.chainId !== selectedVault.currentBestChain ? (
+                      {chainYield.chainId !== selectedVault.currentBestChain ? (
                         <button
-                          onClick={() => handleRebalance(yield.chainId)}
+                          onClick={() => handleRebalance(chainYield.chainId)}
                           disabled={isRebalancing}
                           className="text-primary-600 hover:text-primary-900 text-sm font-medium"
                         >

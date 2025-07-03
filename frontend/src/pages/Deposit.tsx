@@ -1,4 +1,7 @@
-import React from 'react';
+import { useState } from 'react';
+import { useWallet } from '@solana/wallet-adapter-react';
+import { WalletMultiButton } from '@solana/wallet-adapter-react-ui';
+import { ArrowDownIcon, PlusIcon } from '@heroicons/react/24/outline';
 
 export const Deposit = () => {
   return (

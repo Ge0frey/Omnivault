@@ -1,4 +1,4 @@
-import React from 'react';
+import { ChartBarIcon, CogIcon, ShieldCheckIcon } from '@heroicons/react/24/outline';
 
 export const Strategies = () => {
   return (

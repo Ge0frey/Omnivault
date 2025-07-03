@@ -1,10 +1,10 @@
-import { Connection, PublicKey, SystemProgram, SYSVAR_RENT_PUBKEY } from '@solana/web3.js';
-import { Program, AnchorProvider, BN, EventParser } from '@coral-xyz/anchor';
+import { Connection, PublicKey, SystemProgram } from '@solana/web3.js';
+import { Program, AnchorProvider, BN } from '@coral-xyz/anchor';
 import { TOKEN_PROGRAM_ID, getAssociatedTokenAddress } from '@solana/spl-token';
 import { IDL } from '../idl/omnivault';
 
 // Program ID from the IDL
-export const OMNIVAULT_PROGRAM_ID = new PublicKey('HAGPttZ592S5xv5TPrkVLPQpkNGrNPAw42kGjdR9vUc4');
+export const OMNIVAULT_PROGRAM_ID = new PublicKey('66bzWSC6dWFKdAZDcdj7wbjHZ6YWBHB4o77tbP3twVnd');
 export const LAYERZERO_ENDPOINT_ID = new PublicKey('H3SKp4cL5rpzJDntDa2umKE9AHkGiyss1W8BNDndhHWp');
 
 // Chain IDs for cross-chain operations
@@ -33,6 +33,9 @@ export interface VaultStore {
   totalTvl: BN;
   feeRate: number;
   bump: number;
+  lastGlobalRebalance: BN;
+  emergencyPause: boolean;
+  supportedChains: number[];
 }
 
 export interface Vault {
@@ -44,6 +47,11 @@ export interface Vault {
   minDeposit: BN;
   isActive: boolean;
   lastRebalance: BN;
+  targetChains: number[];
+  currentBestChain: number;
+  currentApy: BN;
+  rebalanceThreshold: BN;
+  emergencyExit: boolean;
   bump: number;
 }
 
@@ -54,15 +62,6 @@ export interface UserPosition {
   lastDeposit: BN;
   lastWithdrawal: BN;
   bump: number;
-}
-
-// Extended interfaces for frontend use (with additional computed fields)
-export interface ExtendedVault extends Vault {
-  targetChains?: number[];
-  currentBestChain?: number;
-  currentApy?: BN;
-  rebalanceThreshold?: BN;
-  emergencyExit?: boolean;
 }
 
 export interface YieldTracker {
@@ -113,13 +112,11 @@ export interface RebalanceTriggeredEvent {
 
 export class OmniVaultService {
   private program: Program;
-  private connection: Connection;
   private provider: AnchorProvider;
   private eventListeners: Map<string, number> = new Map();
 
   constructor(provider: AnchorProvider) {
     this.provider = provider;
-    this.connection = provider.connection;
     this.program = new Program(IDL, provider);
   }
 
@@ -192,10 +189,11 @@ export class OmniVaultService {
     }
   }
 
-  // Create a new vault - using only IDL-supported parameters
+  // Create a new vault - with target chains support
   async createVault(
     riskProfile: RiskProfile, 
-    minDeposit: number = 1000000 // Default 1 SOL minimum
+    minDeposit: number = 1000000, // Default 1 SOL minimum
+    targetChains: number[] = [101, 110] // Default to Ethereum and Arbitrum
   ): Promise<{ tx: string; vaultId: number; vaultAddress: PublicKey }> {
     const owner = this.provider.wallet.publicKey;
     
@@ -210,6 +208,7 @@ export class OmniVaultService {
     const vaultId = (vaultStoreAccount as any).totalVaults.toNumber();
     
     const [vault] = this.getVaultPDA(owner, vaultId);
+    const [yieldTracker] = this.getYieldTrackerPDA(vault);
 
     try {
       // Convert enum to IDL format
@@ -218,10 +217,12 @@ export class OmniVaultService {
       const tx = await this.program.methods
         .createVault(
           riskProfileIDL, 
-          new BN(minDeposit)
+          new BN(minDeposit),
+          targetChains
         )
         .accounts({
           vault,
+          yieldTracker,
           vaultStore,
           owner,
           systemProgram: SystemProgram.programId,
@@ -247,6 +248,7 @@ export class OmniVaultService {
     
     const [vault] = this.getVaultPDA(vaultOwner, vaultId);
     const [userPosition] = this.getUserPositionPDA(user, vault);
+    const [vaultStore] = this.getVaultStorePDA();
     
     // Get associated token accounts
     const userTokenAccount = await getAssociatedTokenAddress(mintAddress, user);
@@ -258,6 +260,7 @@ export class OmniVaultService {
         .accounts({
           vault,
           userPosition,
+          vaultStore,
           user,
           userTokenAccount,
           vaultTokenAccount,
@@ -285,6 +288,7 @@ export class OmniVaultService {
     
     const [vault] = this.getVaultPDA(vaultOwner, vaultId);
     const [userPosition] = this.getUserPositionPDA(user, vault);
+    const [vaultStore] = this.getVaultStorePDA();
     
     // Get associated token accounts
     const userTokenAccount = await getAssociatedTokenAddress(mintAddress, user);
@@ -296,6 +300,7 @@ export class OmniVaultService {
         .accounts({
           vault,
           userPosition,
+          vaultStore,
           user,
           userTokenAccount,
           vaultTokenAccount,
@@ -310,7 +315,7 @@ export class OmniVaultService {
     }
   }
 
-  // Query cross-chain yields for optimization (simplified version)
+  // Query cross-chain yields for optimization
   async queryCrossChainYields(vaultId: number, targetChains?: number[]): Promise<string> {
     const user = this.provider.wallet.publicKey;
     
@@ -319,20 +324,18 @@ export class OmniVaultService {
     }
 
     const [vault] = this.getVaultPDA(user, vaultId);
+    const [yieldTracker] = this.getYieldTrackerPDA(vault);
     
     // LayerZero specific accounts (these would need to be configured)
     const endpoint = LAYERZERO_ENDPOINT_ID;
     const oappConfig = vault; // Simplified - in practice this would be a separate account
 
     try {
-      // For now, we'll use lzSend as a placeholder for cross-chain queries
-      const message = Buffer.from(JSON.stringify({ vaultId, targetChains: targetChains || [] }));
-      const options = Buffer.from([]);
-
       const tx = await this.program.methods
-        .lzSend(101, message, options) // Ethereum chain ID as example
+        .queryCrossChainYields(targetChains || [101, 110])
         .accounts({
           vault,
+          yieldTracker,
           endpoint,
           oappConfig,
           payer: user,
@@ -348,7 +351,7 @@ export class OmniVaultService {
   }
 
   // Manual rebalance vault to specific chain
-  async rebalanceVault(vaultId: number, _targetChain: number): Promise<string> {
+  async rebalanceVault(vaultId: number, targetChain: number): Promise<string> {
     const user = this.provider.wallet.publicKey;
     
     if (!user) {
@@ -356,12 +359,14 @@ export class OmniVaultService {
     }
 
     const [vault] = this.getVaultPDA(user, vaultId);
+    const [vaultStore] = this.getVaultStorePDA();
 
     try {
       const tx = await this.program.methods
-        .rebalanceVault()
+        .rebalanceVault(targetChain)
         .accounts({
           vault,
+          vaultStore,
           authority: user,
         })
         .rpc();
@@ -444,14 +449,12 @@ export class OmniVaultService {
     }
   }
 
-  // Fetch yield tracker data (if available)
+  // Fetch yield tracker data
   async getYieldTracker(vault: PublicKey): Promise<YieldTracker | null> {
     try {
       const [yieldTracker] = this.getYieldTrackerPDA(vault);
-      // Note: This will fail if YieldTracker is not implemented in the IDL
-      // For now, return null to prevent errors
-      console.warn('YieldTracker not available in current IDL');
-      return null;
+      const account = await (this.program.account as any).yieldTracker.fetch(yieldTracker);
+      return account as YieldTracker;
     } catch (error) {
       console.error('Error fetching yield tracker:', error);
       return null;
@@ -490,46 +493,25 @@ export class OmniVaultService {
     return chainNames[chainId] || `Chain ${chainId}`;
   }
 
-  // Real-time event listeners (simplified for IDL compatibility)
-  onVaultCreated(callback: (event: any) => void): () => void {
-    try {
-      // For now, we'll just return an empty function since events may not be implemented
-      console.warn('Event listeners not fully implemented - returning no-op function');
-      return () => {};
-    } catch (error) {
-      console.warn('VaultCreated event not available:', error);
-      return () => {};
-    }
+  // Event listeners (simplified for now)
+  onVaultCreated(): () => void {
+    // TODO: Implement event listening
+    return () => {};
   }
 
-  onDepositMade(callback: (event: any) => void): () => void {
-    try {
-      console.warn('Event listeners not fully implemented - returning no-op function');
-      return () => {};
-    } catch (error) {
-      console.warn('DepositMade event not available:', error);
-      return () => {};
-    }
+  onDepositMade(): () => void {
+    // TODO: Implement event listening
+    return () => {};
   }
 
-  onYieldDataReceived(callback: (event: any) => void): () => void {
-    try {
-      console.warn('Event listeners not fully implemented - returning no-op function');
-      return () => {};
-    } catch (error) {
-      console.warn('YieldDataReceived event not available:', error);
-      return () => {};
-    }
+  onYieldDataReceived(): () => void {
+    // TODO: Implement event listening
+    return () => {};
   }
 
-  onRebalanceTriggered(callback: (event: any) => void): () => void {
-    try {
-      console.warn('Event listeners not fully implemented - returning no-op function');
-      return () => {};
-    } catch (error) {
-      console.warn('RebalanceTriggered event not available:', error);
-      return () => {};
-    }
+  onRebalanceTriggered(): () => void {
+    // TODO: Implement event listening
+    return () => {};
   }
 
   // Remove event listener
@@ -571,15 +553,10 @@ export class OmniVaultService {
     }
   }
 
-  subscribeToYieldTracker(yieldTracker: PublicKey, callback: (account: YieldTracker) => void) {
-    try {
-      // This will likely fail if YieldTracker is not in the IDL
-      console.warn('YieldTracker subscription not available in current IDL');
-      return null;
-    } catch (error) {
-      console.error('Error subscribing to yield tracker:', error);
-      return null;
-    }
+  // Account subscriptions (simplified for now)
+  subscribeToYieldTracker(): number {
+    // TODO: Implement account subscription
+    return 0;
   }
 
   // Cleanup method
