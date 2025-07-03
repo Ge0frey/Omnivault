@@ -96,7 +96,7 @@ export const Withdraw: React.FC = () => {
     if (!withdrawVault || !publicKey || !service) return;
     
     try {
-      const position = await service.getUserPosition(publicKey, withdrawVault.key);
+      const position = await service.getUserPosition(publicKey, withdrawVault.publicKey);
       setUserPosition(position);
     } catch (err) {
       console.error('Error fetching user position:', err);
