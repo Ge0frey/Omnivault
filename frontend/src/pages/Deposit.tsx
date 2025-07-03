@@ -5,11 +5,11 @@ import {
   CurrencyDollarIcon, 
   ArrowDownIcon, 
   PlusIcon,
-  ExclamationTriangleIcon,
-  CheckCircleIcon
+  ExclamationTriangleIcon
 } from '@heroicons/react/24/outline';
 import { useOmniVault } from '../hooks/useOmniVault';
 import { RiskProfile, NATIVE_SOL_MINT } from '../services/omnivault';
+import { TransactionSuccess } from '../components/TransactionSuccess';
 
 interface TokenOption {
   address: string;
@@ -60,8 +60,11 @@ export const Deposit: React.FC = () => {
   const [amount, setAmount] = useState<string>('');
   const [selectedToken, setSelectedToken] = useState<TokenOption>(SUPPORTED_TOKENS[0]);
   const [depositVault, setDepositVault] = useState<any>(null);
-  const [showSuccess, setShowSuccess] = useState(false);
-  const [lastTxHash, setLastTxHash] = useState<string>('');
+  const [successTransaction, setSuccessTransaction] = useState<{
+    signature: string;
+    title: string;
+    description: string;
+  } | null>(null);
 
   // Refresh data when component mounts or wallet changes
   useEffect(() => {
@@ -103,10 +106,12 @@ export const Deposit: React.FC = () => {
       }
 
       if (txHash) {
-        setLastTxHash(txHash);
-        setShowSuccess(true);
+        setSuccessTransaction({
+          signature: txHash,
+          title: "Deposit Successful!",
+          description: `Successfully deposited ${amount} ${selectedToken.symbol} into your vault. Your funds are now optimizing yields across chains.`
+        });
         setAmount('');
-        setTimeout(() => setShowSuccess(false), 5000);
       }
     } catch (error) {
       console.error('Deposit failed:', error);
@@ -169,20 +174,13 @@ export const Deposit: React.FC = () => {
       </div>
 
       {/* Success Message */}
-      {showSuccess && (
-        <div className="card p-4 border border-green-200 bg-green-50 dark:bg-green-900/20">
-          <div className="flex items-center">
-            <CheckCircleIcon className="h-5 w-5 text-green-600 mr-2" />
-            <div>
-              <p className="text-green-800 dark:text-green-200 font-medium">Deposit Successful!</p>
-              {lastTxHash && (
-                <p className="text-green-600 dark:text-green-300 text-sm">
-                  Transaction: {lastTxHash.slice(0, 8)}...{lastTxHash.slice(-8)}
-                </p>
-              )}
-            </div>
-          </div>
-        </div>
+      {successTransaction && (
+        <TransactionSuccess
+          signature={successTransaction.signature}
+          title={successTransaction.title}
+          description={successTransaction.description}
+          onClose={() => setSuccessTransaction(null)}
+        />
       )}
 
       {/* Error Message */}

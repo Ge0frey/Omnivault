@@ -3,6 +3,7 @@ import { useWallet } from '@solana/wallet-adapter-react';
 import { WalletMultiButton } from '@solana/wallet-adapter-react-ui';
 import { useOmniVault } from '../hooks/useOmniVault';
 import { RiskProfile } from '../services/omnivault';
+import { TransactionSuccess } from '../components/TransactionSuccess';
 import { 
   CurrencyDollarIcon, 
   ArrowTrendingUpIcon,
@@ -34,6 +35,11 @@ export const Dashboard = () => {
 
   const [showCreateVault, setShowCreateVault] = useState(false);
   const [selectedRiskProfile, setSelectedRiskProfile] = useState<RiskProfile>(RiskProfile.Conservative);
+  const [successTransaction, setSuccessTransaction] = useState<{
+    signature: string;
+    title: string;
+    description: string;
+  } | null>(null);
 
   // Auto-refresh data every 30 seconds
   useEffect(() => {
@@ -47,6 +53,11 @@ export const Dashboard = () => {
     const tx = await initialize();
     if (tx) {
       console.log('Initialized vault store:', tx);
+      setSuccessTransaction({
+        signature: tx,
+        title: "OmniVault Initialized!",
+        description: "The OmniVault system has been successfully initialized. You can now create vaults and start optimizing your yields."
+      });
     }
   };
 
@@ -55,6 +66,11 @@ export const Dashboard = () => {
     if (result) {
       console.log('Created vault:', result);
       setShowCreateVault(false);
+      setSuccessTransaction({
+        signature: result.tx,
+        title: "Vault Created Successfully!",
+        description: `Your ${selectedRiskProfile.toLowerCase()} risk profile vault (ID: ${result.vaultId}) has been created and is ready for deposits.`
+      });
     }
   };
 
@@ -141,6 +157,18 @@ export const Dashboard = () => {
                 ✕
               </button>
             </div>
+          </div>
+        )}
+
+        {/* Transaction Success */}
+        {successTransaction && (
+          <div className="mb-6">
+            <TransactionSuccess
+              signature={successTransaction.signature}
+              title={successTransaction.title}
+              description={successTransaction.description}
+              onClose={() => setSuccessTransaction(null)}
+            />
           </div>
         )}
 
