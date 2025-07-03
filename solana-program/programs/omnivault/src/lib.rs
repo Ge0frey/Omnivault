@@ -1,16 +1,23 @@
 use anchor_lang::prelude::*;
-use anchor_spl::token::{self, Token, TokenAccount, Transfer};
+use anchor_spl::token::{self, Token, TokenAccount, Transfer, Mint};
 use anchor_lang::solana_program::{
     program::invoke_signed,
     sysvar::{rent::Rent, Sysvar, clock::Clock},
     instruction::{AccountMeta, Instruction},
+    system_instruction,
 };
+use anchor_spl::associated_token::AssociatedToken;
 use std::str::FromStr;
 
 declare_id!("66bzWSC6dWFKdAZDcdj7wbjHZ6YWBHB4o77tbP3twVnd");
 
-// LayerZero Endpoint Program ID (from Anchor.toml)
+// LayerZero V2 Configuration
 const LAYERZERO_ENDPOINT: &str = "H3SKp4cL5rpzJDntDa2umKE9AHkGiyss1W8BNDndhHWp";
+const MAX_CROSS_CHAIN_QUERIES: u8 = 10;
+const MIN_REBALANCE_INTERVAL: i64 = 3600; // 1 hour
+
+// Native SOL mint address (for tracking SOL deposits)
+const NATIVE_SOL_MINT: &str = "So11111111111111111111111111111111111111112";
 
 // Cross-chain identifiers for supported networks
 pub mod chain_ids {
@@ -25,7 +32,6 @@ pub mod chain_ids {
 // Yield optimization constants
 const MIN_YIELD_DIFFERENTIAL: u64 = 100; // 1% in basis points
 const REBALANCE_COOLDOWN: i64 = 3600; // 1 hour in seconds
-const MAX_CROSS_CHAIN_QUERIES: u8 = 5;
 const EMERGENCY_PAUSE_THRESHOLD: u64 = 1000; // 10% loss threshold
 
 #[program]
@@ -38,19 +44,22 @@ pub mod omnivault {
         vault_store.authority = ctx.accounts.authority.key();
         vault_store.total_vaults = 0;
         vault_store.total_tvl = 0;
-        vault_store.fee_rate = 100; // 1% fee (100 basis points)
+        vault_store.fee_rate = 100; // 1% default fee
         vault_store.bump = ctx.bumps.vault_store;
         vault_store.last_global_rebalance = Clock::get()?.unix_timestamp;
         vault_store.emergency_pause = false;
+        
+        // Initialize supported chains for cross-chain operations
         vault_store.supported_chains = vec![
             chain_ids::ETHEREUM,
             chain_ids::ARBITRUM,
             chain_ids::POLYGON,
             chain_ids::BSC,
             chain_ids::AVALANCHE,
+            chain_ids::OPTIMISM,
         ];
         
-        msg!("OmniVault initialized successfully");
+        msg!("OmniVault program initialized with authority: {}", vault_store.authority);
         Ok(())
     }
 
@@ -61,37 +70,37 @@ pub mod omnivault {
         min_deposit: u64,
         target_chains: Vec<u16>,
     ) -> Result<()> {
-        let vault = &mut ctx.accounts.vault;
-        let vault_store = &mut ctx.accounts.vault_store;
-        
-        require!(!vault_store.emergency_pause, OmniVaultError::SystemPaused);
         require!(!target_chains.is_empty(), OmniVaultError::InvalidChainConfiguration);
-        require!(target_chains.len() <= MAX_CROSS_CHAIN_QUERIES as usize, OmniVaultError::TooManyChains);
+        require!(target_chains.len() <= 10, OmniVaultError::TooManyChains);
+        require!(min_deposit > 0, OmniVaultError::InvalidAmount);
+        
+        let vault_store = &mut ctx.accounts.vault_store;
+        let vault = &mut ctx.accounts.vault;
+        let yield_tracker = &mut ctx.accounts.yield_tracker;
         
         vault.id = vault_store.total_vaults;
         vault.owner = ctx.accounts.owner.key();
-        vault.risk_profile = risk_profile;
+        vault.risk_profile = risk_profile.clone();
         vault.total_deposits = 0;
         vault.total_yield = 0;
         vault.min_deposit = min_deposit;
         vault.is_active = true;
         vault.last_rebalance = Clock::get()?.unix_timestamp;
-        vault.target_chains = target_chains;
-        vault.current_best_chain = chain_ids::ETHEREUM; // Default
+        vault.target_chains = target_chains.clone();
+        vault.current_best_chain = target_chains[0]; // Default to first chain
         vault.current_apy = 0;
-        vault.rebalance_threshold = MIN_YIELD_DIFFERENTIAL;
+        vault.rebalance_threshold = 200; // 2% threshold
         vault.emergency_exit = false;
         vault.bump = ctx.bumps.vault;
         
-        vault_store.total_vaults += 1;
-        
-        // Initialize yield tracking for this vault
-        let yield_tracker = &mut ctx.accounts.yield_tracker;
+        // Initialize yield tracker
         yield_tracker.vault = vault.key();
         yield_tracker.chain_yields = vec![];
-        yield_tracker.last_update = Clock::get()?.unix_timestamp;
+        yield_tracker.last_update = 0;
         yield_tracker.query_nonce = 0;
         yield_tracker.bump = ctx.bumps.yield_tracker;
+        
+        vault_store.total_vaults += 1;
         
         emit!(VaultCreated {
             vault_id: vault.id,
@@ -158,6 +167,59 @@ pub mod omnivault {
         Ok(())
     }
 
+    /// Deposit native SOL into a vault
+    pub fn deposit_sol(ctx: Context<DepositSol>, amount: u64) -> Result<()> {
+        require!(amount > 0, OmniVaultError::InvalidAmount);
+        
+        let vault = &mut ctx.accounts.vault;
+        let user_position = &mut ctx.accounts.user_position;
+        let vault_store = &ctx.accounts.vault_store;
+        
+        require!(amount >= vault.min_deposit, OmniVaultError::DepositTooSmall);
+        require!(vault.is_active, OmniVaultError::VaultInactive);
+        require!(!vault_store.emergency_pause, OmniVaultError::SystemPaused);
+        require!(!vault.emergency_exit, OmniVaultError::VaultEmergencyExit);
+        
+        // Transfer SOL from user to vault using system program
+        let transfer_instruction = system_instruction::transfer(
+            &ctx.accounts.user.key(),
+            &vault.key(),
+            amount,
+        );
+        
+        anchor_lang::solana_program::program::invoke(
+            &transfer_instruction,
+            &[
+                ctx.accounts.user.to_account_info(),
+                vault.to_account_info(),
+                ctx.accounts.system_program.to_account_info(),
+            ],
+        )?;
+        
+        // Update vault and user position
+        vault.total_deposits += amount;
+        user_position.amount += amount;
+        user_position.last_deposit = Clock::get()?.unix_timestamp;
+        
+        // Initialize user position if needed
+        if user_position.user == Pubkey::default() {
+            user_position.user = ctx.accounts.user.key();
+            user_position.vault = vault.key();
+            user_position.last_withdrawal = 0;
+            user_position.bump = ctx.bumps.user_position;
+        }
+        
+        emit!(DepositMade {
+            vault_id: vault.id,
+            user: ctx.accounts.user.key(),
+            amount,
+            new_total: vault.total_deposits,
+        });
+        
+        msg!("Deposited {} SOL to vault {}", amount, vault.id);
+        Ok(())
+    }
+
     /// Withdraw tokens from a vault
     pub fn withdraw(ctx: Context<Withdraw>, amount: u64) -> Result<()> {
         require!(amount > 0, OmniVaultError::InvalidAmount);
@@ -207,6 +269,40 @@ pub mod omnivault {
         Ok(())
     }
 
+    /// Withdraw native SOL from a vault
+    pub fn withdraw_sol(ctx: Context<WithdrawSol>, amount: u64) -> Result<()> {
+        require!(amount > 0, OmniVaultError::InvalidAmount);
+        
+        let user_position = &mut ctx.accounts.user_position;
+        let vault = &mut ctx.accounts.vault;
+        
+        require!(user_position.amount >= amount, OmniVaultError::InsufficientBalance);
+        
+        // Calculate withdrawal fee
+        let vault_store = &ctx.accounts.vault_store;
+        let fee = (amount * vault_store.fee_rate as u64) / 10000;
+        let withdrawal_amount = amount - fee;
+        
+        // Transfer SOL from vault to user
+        **vault.to_account_info().try_borrow_mut_lamports()? -= withdrawal_amount;
+        **ctx.accounts.user.to_account_info().try_borrow_mut_lamports()? += withdrawal_amount;
+        
+        // Update vault and user position
+        vault.total_deposits -= amount;
+        user_position.amount -= amount;
+        user_position.last_withdrawal = Clock::get()?.unix_timestamp;
+        
+        emit!(WithdrawalMade {
+            vault_id: vault.id,
+            user: ctx.accounts.user.key(),
+            amount: withdrawal_amount,
+            fee,
+        });
+        
+        msg!("Withdrew {} SOL from vault {} (fee: {})", withdrawal_amount, vault.id, fee);
+        Ok(())
+    }
+
     /// Send cross-chain yield query via LayerZero
     pub fn query_cross_chain_yields(
         ctx: Context<QueryCrossChainYields>,
@@ -242,12 +338,15 @@ pub mod omnivault {
         
         let message_data = query_message.try_to_vec()?;
         
-        // Send to each target chain
+        // Enhanced LayerZero V2 messaging
         for chain_id in &target_chains {
+            // Create LayerZero send options with gas settings
+            let options = create_lz_options(*chain_id)?;
+            
             let lz_instruction_data = LzSendData {
                 dst_chain_id: *chain_id,
                 message: message_data.clone(),
-                options: vec![], // Default options
+                options,
             };
             
             let serialized_data = lz_instruction_data.try_to_vec()?;
@@ -259,22 +358,24 @@ pub mod omnivault {
                     AccountMeta::new(ctx.accounts.endpoint.key(), false),
                     AccountMeta::new(ctx.accounts.oapp_config.key(), false),
                     AccountMeta::new(ctx.accounts.payer.key(), true),
+                    AccountMeta::new_readonly(ctx.accounts.system_program.key(), false),
                 ],
                 data: serialized_data,
             };
             
-            // Invoke LayerZero endpoint
+            // Invoke LayerZero endpoint with proper account handling
             invoke_signed(
                 &lz_instruction,
                 &[
                     ctx.accounts.endpoint.to_account_info(),
                     ctx.accounts.oapp_config.to_account_info(),
                     ctx.accounts.payer.to_account_info(),
+                    ctx.accounts.system_program.to_account_info(),
                 ],
                 &[],
             )?;
             
-            msg!("Yield query sent to chain {}", chain_id);
+            msg!("Enhanced yield query sent to chain {} with nonce {}", chain_id, yield_tracker.query_nonce);
         }
         
         yield_tracker.last_update = clock.unix_timestamp;
@@ -297,32 +398,30 @@ pub mod omnivault {
         require!(!payload.is_empty(), OmniVaultError::InvalidPayload);
         
         // Validate LayerZero endpoint
-        let expected_endpoint = Pubkey::from_str(LAYERZERO_ENDPOINT).unwrap();
         require!(
-            ctx.accounts.endpoint.key().eq(&expected_endpoint),
+            ctx.accounts.endpoint.key() == Pubkey::from_str(LAYERZERO_ENDPOINT).unwrap(),
             OmniVaultError::InvalidLayerZeroEndpoint
         );
         
-        // Deserialize payload
+        let vault = &mut ctx.accounts.vault;
+        let yield_tracker = &mut ctx.accounts.yield_tracker;
+        
+        // Deserialize cross-chain message
         let message: CrossChainMessage = CrossChainMessage::try_from_slice(&payload)?;
         
         match message.action {
-            CrossChainAction::YieldResponse { 
-                vault_id, 
-                chain_id, 
-                apy, 
-                tvl, 
+            CrossChainAction::YieldResponse {
+                vault_id,
+                chain_id,
+                apy,
+                tvl,
                 risk_score,
-                query_nonce 
+                query_nonce,
             } => {
-                let vault = &mut ctx.accounts.vault;
-                let yield_tracker = &mut ctx.accounts.yield_tracker;
-                
-                require!(vault.id == vault_id, OmniVaultError::InvalidVaultId);
+                require!(vault_id == vault.id, OmniVaultError::InvalidVaultId);
                 require!(query_nonce == yield_tracker.query_nonce, OmniVaultError::InvalidNonce);
                 
-                // Update yield data for this chain
-                let chain_yield = ChainYield {
+                let new_yield = ChainYield {
                     chain_id,
                     apy,
                     tvl,
@@ -330,35 +429,32 @@ pub mod omnivault {
                     last_updated: Clock::get()?.unix_timestamp,
                 };
                 
-                // Update or add yield data for this chain
-                if let Some(existing) = yield_tracker.chain_yields.iter_mut().find(|cy| cy.chain_id == chain_id) {
-                    *existing = chain_yield;
+                // Update or add chain yield data
+                if let Some(existing_yield) = yield_tracker.chain_yields.iter_mut().find(|cy| cy.chain_id == chain_id) {
+                    *existing_yield = new_yield;
                 } else {
-                    yield_tracker.chain_yields.push(chain_yield);
+                    yield_tracker.chain_yields.push(new_yield);
                 }
                 
-                // Check if we should rebalance
+                // Check if rebalancing is needed
                 if let Some(best_chain) = find_best_chain(&yield_tracker.chain_yields, &vault.risk_profile) {
                     let current_apy = vault.current_apy;
-                    let yield_improvement = best_chain.apy.saturating_sub(current_apy);
+                    let improvement = best_chain.apy.saturating_sub(current_apy);
                     
-                    if yield_improvement >= vault.rebalance_threshold && 
-                       best_chain.chain_id != vault.current_best_chain {
-                        
+                    if improvement > vault.rebalance_threshold && best_chain.chain_id != vault.current_best_chain {
                         // Trigger rebalancing
                         vault.current_best_chain = best_chain.chain_id;
                         vault.current_apy = best_chain.apy;
                         vault.last_rebalance = Clock::get()?.unix_timestamp;
                         
                         emit!(RebalanceTriggered {
-                            vault_id,
+                            vault_id: vault.id,
                             from_chain: vault.current_best_chain,
                             to_chain: best_chain.chain_id,
-                            yield_improvement,
+                            yield_improvement: improvement,
                         });
                         
-                        msg!("Rebalancing vault {} to chain {} (APY: {})", 
-                             vault_id, best_chain.chain_id, best_chain.apy);
+                        msg!("Automated rebalance triggered for vault {} to chain {}", vault.id, best_chain.chain_id);
                     }
                 }
                 
@@ -370,39 +466,19 @@ pub mod omnivault {
                     risk_score,
                 });
                 
-                msg!("Yield data received from chain {}: APY={}, TVL={}", chain_id, apy, tvl);
-            },
-            
+                msg!("Received yield data from chain {}: APY {}, TVL {}", chain_id, apy, tvl);
+            }
             CrossChainAction::EmergencyPause { vault_id } => {
-                let vault = &mut ctx.accounts.vault;
-                require!(vault.id == vault_id, OmniVaultError::InvalidVaultId);
-                
+                require!(vault_id == vault.id, OmniVaultError::InvalidVaultId);
                 vault.emergency_exit = true;
-                vault.is_active = false;
                 
                 emit!(EmergencyPauseActivated {
                     vault_id,
                     triggered_by_chain: src_chain_id,
                 });
                 
-                msg!("Emergency pause activated for vault {} from chain {}", vault_id, src_chain_id);
-            },
-            
-            CrossChainAction::Rebalance { vault_id, new_allocation } => {
-                let vault = &mut ctx.accounts.vault;
-                require!(vault.id == vault_id, OmniVaultError::InvalidVaultId);
-                
-                // Process rebalancing instruction
-                vault.last_rebalance = Clock::get()?.unix_timestamp;
-                
-                emit!(RebalanceExecuted {
-                    vault_id,
-                    allocation_data: new_allocation,
-                });
-                
-                msg!("Rebalance executed for vault {}", vault_id);
-            },
-            
+                msg!("Emergency pause triggered for vault {} from chain {}", vault_id, src_chain_id);
+            }
             _ => {
                 return Err(OmniVaultError::UnsupportedAction.into());
             }
@@ -416,9 +492,9 @@ pub mod omnivault {
         _ctx: Context<LzReceiveTypes>,
         src_chain_id: u16,
     ) -> Result<()> {
-        // This instruction is called by LayerZero executor to get account types
-        // Required for Solana's account model
-        msg!("LayerZero receive types called for chain {}", src_chain_id);
+        // This function provides type information for LayerZero's account resolution
+        // The actual implementation depends on LayerZero V2 SDK requirements
+        msg!("LZ receive types called for source chain: {}", src_chain_id);
         Ok(())
     }
 
@@ -426,23 +502,17 @@ pub mod omnivault {
     pub fn rebalance_vault(ctx: Context<RebalanceVault>, target_chain: u16) -> Result<()> {
         let vault = &mut ctx.accounts.vault;
         let vault_store = &ctx.accounts.vault_store;
-        let clock = Clock::get()?;
         
         require!(!vault_store.emergency_pause, OmniVaultError::SystemPaused);
         require!(!vault.emergency_exit, OmniVaultError::VaultEmergencyExit);
         
-        // Only allow rebalancing once per cooldown period
+        let clock = Clock::get()?;
         require!(
-            clock.unix_timestamp - vault.last_rebalance > REBALANCE_COOLDOWN,
+            clock.unix_timestamp - vault.last_rebalance > MIN_REBALANCE_INTERVAL,
             OmniVaultError::RebalanceTooFrequent
         );
         
-        // Validate target chain
-        require!(
-            vault.target_chains.contains(&target_chain),
-            OmniVaultError::InvalidTargetChain
-        );
-        
+        let old_chain = vault.current_best_chain;
         vault.current_best_chain = target_chain;
         vault.last_rebalance = clock.unix_timestamp;
         
@@ -452,7 +522,8 @@ pub mod omnivault {
             executor: ctx.accounts.authority.key(),
         });
         
-        msg!("Manual rebalance of vault {} to chain {}", vault.id, target_chain);
+        msg!("Manual rebalance executed for vault {} from chain {} to chain {}", 
+             vault.id, old_chain, target_chain);
         Ok(())
     }
 
@@ -467,6 +538,7 @@ pub mod omnivault {
         let vault = &mut ctx.accounts.vault;
         
         if let Some(min_deposit) = new_min_deposit {
+            require!(min_deposit > 0, OmniVaultError::InvalidAmount);
             vault.min_deposit = min_deposit;
         }
         
@@ -475,13 +547,12 @@ pub mod omnivault {
         }
         
         if let Some(threshold) = new_rebalance_threshold {
-            require!(threshold >= 10, OmniVaultError::InvalidThreshold); // Min 0.1%
+            require!(threshold > 0 && threshold <= 1000, OmniVaultError::InvalidThreshold); // Max 10%
             vault.rebalance_threshold = threshold;
         }
         
         if let Some(chains) = new_target_chains {
-            require!(!chains.is_empty(), OmniVaultError::InvalidChainConfiguration);
-            require!(chains.len() <= MAX_CROSS_CHAIN_QUERIES as usize, OmniVaultError::TooManyChains);
+            require!(!chains.is_empty() && chains.len() <= 10, OmniVaultError::InvalidChainConfiguration);
             vault.target_chains = chains;
         }
         
@@ -504,7 +575,7 @@ pub mod omnivault {
             timestamp: Clock::get()?.unix_timestamp,
         });
         
-        msg!("System emergency pause activated");
+        msg!("System emergency pause activated by {}", ctx.accounts.authority.key());
         Ok(())
     }
 
@@ -518,9 +589,30 @@ pub mod omnivault {
             timestamp: Clock::get()?.unix_timestamp,
         });
         
-        msg!("System operations resumed");
+        msg!("System operations resumed by {}", ctx.accounts.authority.key());
         Ok(())
     }
+}
+
+// Helper function to create LayerZero options for different chains
+fn create_lz_options(dst_chain_id: u16) -> Result<Vec<u8>> {
+    // Create options based on destination chain
+    let gas_limit: u128 = match dst_chain_id {
+        101 => 200_000,    // Ethereum - higher gas
+        110 => 150_000,    // Arbitrum - lower gas
+        109 => 100_000,    // Polygon - very low gas
+        102 => 80_000,     // BSC - low gas
+        106 => 120_000,    // Avalanche - medium gas
+        111 => 150_000,    // Optimism - lower gas
+        _ => 100_000,      // Default
+    };
+    
+    // Simple options encoding - in production, use LayerZero SDK
+    let mut options = Vec::new();
+    options.extend_from_slice(&gas_limit.to_le_bytes());
+    options.push(0x01); // Version flag
+    
+    Ok(options)
 }
 
 // Helper function to find the best chain based on risk profile
@@ -532,23 +624,21 @@ fn find_best_chain<'a>(chain_yields: &'a [ChainYield], risk_profile: &RiskProfil
     match risk_profile {
         RiskProfile::Conservative => {
             // Prioritize low risk, then yield
-            chain_yields.iter()
-                .filter(|cy| cy.risk_score <= 30) // Low risk threshold
+            chain_yields
+                .iter()
+                .filter(|cy| cy.risk_score <= 30)
                 .max_by_key(|cy| cy.apy)
-        },
+        }
         RiskProfile::Moderate => {
             // Balance risk and yield
-            chain_yields.iter()
-                .max_by_key(|cy| {
-                    // Score = APY - (risk_score * penalty_factor)
-                    cy.apy.saturating_sub(cy.risk_score * 2)
-                })
-        },
+            chain_yields
+                .iter()
+                .max_by_key(|cy| cy.apy.saturating_sub(cy.risk_score * 2))
+        }
         RiskProfile::Aggressive => {
             // Prioritize highest yield
-            chain_yields.iter()
-                .max_by_key(|cy| cy.apy)
-        },
+            chain_yields.iter().max_by_key(|cy| cy.apy)
+        }
     }
 }
 
@@ -618,6 +708,25 @@ pub struct Deposit<'info> {
 }
 
 #[derive(Accounts)]
+pub struct DepositSol<'info> {
+    #[account(mut)]
+    pub vault: Account<'info, Vault>,
+    #[account(
+        init_if_needed,
+        payer = user,
+        space = 8 + UserPosition::INIT_SPACE,
+        seeds = [b"position", vault.key().as_ref(), user.key().as_ref()],
+        bump
+    )]
+    pub user_position: Account<'info, UserPosition>,
+    #[account()]
+    pub vault_store: Account<'info, VaultStore>,
+    #[account(mut)]
+    pub user: Signer<'info>,
+    pub system_program: Program<'info, System>,
+}
+
+#[derive(Accounts)]
 pub struct Withdraw<'info> {
     #[account(mut)]
     pub vault: Account<'info, Vault>,
@@ -632,6 +741,18 @@ pub struct Withdraw<'info> {
     #[account(mut)]
     pub vault_token_account: Account<'info, TokenAccount>,
     pub token_program: Program<'info, Token>,
+}
+
+#[derive(Accounts)]
+pub struct WithdrawSol<'info> {
+    #[account(mut)]
+    pub vault: Account<'info, Vault>,
+    #[account(mut)]
+    pub user_position: Account<'info, UserPosition>,
+    #[account()]
+    pub vault_store: Account<'info, VaultStore>,
+    #[account(mut)]
+    pub user: Signer<'info>,
 }
 
 #[derive(Accounts)]
@@ -953,3 +1074,4 @@ pub enum OmniVaultError {
     #[msg("Vault emergency exit")]
     VaultEmergencyExit,
 }
+
