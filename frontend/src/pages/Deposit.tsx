@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useWallet } from '@solana/wallet-adapter-react';
-import { PublicKey, LAMPORTS_PER_SOL } from '@solana/web3.js';
+import { PublicKey } from '@solana/web3.js';
 import { 
   CurrencyDollarIcon, 
   ArrowDownIcon, 
@@ -47,8 +47,6 @@ export const Deposit: React.FC = () => {
   const { connected, publicKey } = useWallet();
   const {
     userVaults,
-    selectedVault,
-    selectVault,
     depositSol,
     deposit,
     isDepositing,

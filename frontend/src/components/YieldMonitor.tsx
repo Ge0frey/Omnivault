@@ -28,7 +28,7 @@ export const YieldMonitor: React.FC<YieldMonitorProps> = ({ vaultId: _vaultId })
   } = useOmniVault();
 
   // Auto-refresh functionality
-  const [refreshInterval] = React.useState<number>(30000); // 30 seconds
+  const [_refreshInterval] = React.useState<number>(30000); // 30 seconds
 
   const handleManualRefresh = () => {
     if (selectedVault) {

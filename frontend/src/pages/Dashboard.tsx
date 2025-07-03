@@ -17,6 +17,8 @@ export const Dashboard = () => {
     userVaults,
     selectedVault,
     userPosition,
+    userSolBalance,
+    minSolForVaultCreation,
     loading,
     isInitializing,
     isCreatingVault,
@@ -24,6 +26,8 @@ export const Dashboard = () => {
     createVault,
     selectVault,
     refreshData,
+    refreshBalance,
+    requestAirdrop,
     error,
     clearError
   } = useOmniVault();
@@ -51,19 +55,6 @@ export const Dashboard = () => {
     if (result) {
       console.log('Created vault:', result);
       setShowCreateVault(false);
-    }
-  };
-
-  const getRiskProfileColor = (risk: RiskProfile) => {
-    switch (risk) {
-      case RiskProfile.Conservative:
-        return 'text-green-600';
-      case RiskProfile.Moderate:
-        return 'text-yellow-600';
-      case RiskProfile.Aggressive:
-        return 'text-red-600';
-      default:
-        return 'text-blue-600';
     }
   };
 
@@ -126,6 +117,22 @@ export const Dashboard = () => {
               <ExclamationTriangleIcon className="h-5 w-5 text-red-400" />
               <div className="ml-3 flex-1">
                 <p className="text-sm text-red-700 dark:text-red-200">{error}</p>
+                {error.includes('Insufficient SOL balance') && (
+                  <div className="mt-3 flex gap-2">
+                    <button
+                      onClick={requestAirdrop}
+                      className="text-xs bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700"
+                    >
+                      Request Airdrop (2 SOL)
+                    </button>
+                    <button
+                      onClick={refreshBalance}
+                      className="text-xs bg-gray-600 text-white px-3 py-1 rounded hover:bg-gray-700"
+                    >
+                      Refresh Balance
+                    </button>
+                  </div>
+                )}
               </div>
               <button 
                 onClick={clearError}
@@ -133,6 +140,37 @@ export const Dashboard = () => {
               >
                 ✕
               </button>
+            </div>
+          </div>
+        )}
+
+        {/* Low Balance Warning */}
+        {connected && userSolBalance > 0 && userSolBalance < minSolForVaultCreation && !error && (
+          <div className="mb-6 card p-4 border-l-4 border-yellow-400 bg-yellow-50 dark:bg-yellow-900/20">
+            <div className="flex">
+              <ExclamationTriangleIcon className="h-5 w-5 text-yellow-400" />
+              <div className="ml-3 flex-1">
+                <h3 className="text-sm font-medium text-yellow-800 dark:text-yellow-200">
+                  Insufficient SOL Balance
+                </h3>
+                <p className="text-sm text-yellow-700 dark:text-yellow-300 mb-3">
+                  You have {userSolBalance.toFixed(4)} SOL, but need at least {minSolForVaultCreation.toFixed(4)} SOL to create a vault.
+                </p>
+                <div className="flex gap-2">
+                  <button
+                    onClick={requestAirdrop}
+                    className="text-xs bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700"
+                  >
+                    Request Airdrop (2 SOL)
+                  </button>
+                  <button
+                    onClick={refreshBalance}
+                    className="text-xs bg-gray-600 text-white px-3 py-1 rounded hover:bg-gray-700"
+                  >
+                    Refresh Balance
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
         )}
@@ -160,11 +198,36 @@ export const Dashboard = () => {
         )}
 
         {/* Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
           <div className="card p-6">
             <div className="flex items-center">
               <div className="flex-shrink-0">
                 <CurrencyDollarIcon className="h-8 w-8 text-primary-600" />
+              </div>
+              <div className="ml-5 w-0 flex-1">
+                <dl>
+                  <dt className="text-sm font-medium text-gray-500 dark:text-gray-400 truncate">
+                    Your SOL Balance
+                  </dt>
+                  <dd className="text-lg font-medium text-gray-900 dark:text-white">
+                    {userSolBalance.toFixed(4)} SOL
+                  </dd>
+                  {userSolBalance < minSolForVaultCreation && (
+                    <dd className="text-xs text-red-600 dark:text-red-400">
+                      Need {minSolForVaultCreation.toFixed(4)} SOL to create vault
+                    </dd>
+                  )}
+                </dl>
+              </div>
+            </div>
+          </div>
+
+          <div className="card p-6">
+            <div className="flex items-center">
+              <div className="flex-shrink-0">
+                <div className="h-8 w-8 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center">
+                  <span className="text-sm font-medium text-gray-600 dark:text-gray-400">#</span>
+                </div>
               </div>
               <div className="ml-5 w-0 flex-1">
                 <dl>
@@ -247,8 +310,13 @@ export const Dashboard = () => {
               {vaultStore && (
                 <button
                   onClick={() => setShowCreateVault(true)}
-                  disabled={isCreatingVault}
+                  disabled={isCreatingVault || userSolBalance < minSolForVaultCreation}
                   className="btn btn-primary flex items-center"
+                  title={
+                    userSolBalance < minSolForVaultCreation 
+                      ? `Need ${minSolForVaultCreation.toFixed(4)} SOL to create vault`
+                      : undefined
+                  }
                 >
                   <PlusIcon className="h-4 w-4 mr-2" />
                   {isCreatingVault ? 'Creating...' : 'Create Vault'}
@@ -277,7 +345,7 @@ export const Dashboard = () => {
                       <h4 className="font-medium text-gray-900 dark:text-white">
                         Vault #{vault.id.toString()}
                       </h4>
-                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${getRiskProfileBadgeColor(vault.riskProfile as RiskProfile)}`}>
+                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${getRiskProfileBadgeColor(vault.riskProfile as unknown as RiskProfile)}`}>
                         {getRiskProfileName(vault.riskProfile)}
                       </span>
                     </div>
@@ -295,7 +363,13 @@ export const Dashboard = () => {
                 {vaultStore && (
                   <button
                     onClick={() => setShowCreateVault(true)}
+                    disabled={userSolBalance < minSolForVaultCreation}
                     className="btn btn-primary"
+                    title={
+                      userSolBalance < minSolForVaultCreation 
+                        ? `Need ${minSolForVaultCreation.toFixed(4)} SOL to create vault`
+                        : undefined
+                    }
                   >
                     Create Your First Vault
                   </button>
@@ -314,7 +388,7 @@ export const Dashboard = () => {
                     <h4 className="text-xl font-semibold text-gray-900 dark:text-white">
                       Vault #{selectedVault.id.toString()}
                     </h4>
-                    <span className={`px-3 py-1 rounded-full text-sm font-medium ${getRiskProfileBadgeColor(selectedVault.riskProfile as RiskProfile)}`}>
+                    <span className={`px-3 py-1 rounded-full text-sm font-medium ${getRiskProfileBadgeColor(selectedVault.riskProfile as unknown as RiskProfile)}`}>
                       {getRiskProfileName(selectedVault.riskProfile)}
                     </span>
                   </div>
@@ -398,8 +472,13 @@ export const Dashboard = () => {
                 </button>
                 <button
                   onClick={handleCreateVault}
-                  disabled={isCreatingVault}
+                  disabled={isCreatingVault || userSolBalance < minSolForVaultCreation}
                   className="flex-1 btn btn-primary"
+                  title={
+                    userSolBalance < minSolForVaultCreation 
+                      ? `Need ${minSolForVaultCreation.toFixed(4)} SOL to create vault`
+                      : undefined
+                  }
                 >
                   {isCreatingVault ? 'Creating...' : 'Create Vault'}
                 </button>

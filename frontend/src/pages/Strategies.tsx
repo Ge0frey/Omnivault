@@ -1,5 +1,3 @@
-import { ChartBarIcon, CogIcon, ShieldCheckIcon } from '@heroicons/react/24/outline';
-
 export const Strategies = () => {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-8">

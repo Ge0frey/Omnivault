@@ -12,10 +12,9 @@ import type {
   VaultCreatedEvent,
   DepositMadeEvent,
   YieldDataReceivedEvent,
-  RebalanceTriggeredEvent,
-  RiskProfile,
-  CHAIN_IDS
+  RebalanceTriggeredEvent
 } from '../services/omnivault';
+import { RiskProfile } from '../services/omnivault';
 import { createOmniVaultService } from '../services/omnivault';
 
 export interface UseOmniVaultReturn {
@@ -38,6 +37,10 @@ export interface UseOmniVaultReturn {
   userPosition: UserPosition | null;
   yieldTracker: YieldTracker | null;
   
+  // Balance information
+  userSolBalance: number;
+  minSolForVaultCreation: number;
+  
   // Cross-chain data
   chainYields: ChainYield[];
   bestChain: ChainYield | null;
@@ -57,6 +60,10 @@ export interface UseOmniVaultReturn {
   rebalanceVault: (vaultId: number, targetChain: number) => Promise<string | null>;
   updateVaultConfig: (vaultId: number, config: any) => Promise<string | null>;
   
+  // Balance utilities
+  refreshBalance: () => Promise<void>;
+  requestAirdrop: () => Promise<string | null>;
+  
   // Real-time events
   recentEvents: Array<{
     type: string;
@@ -74,7 +81,7 @@ export interface UseOmniVaultReturn {
 
 export const useOmniVault = (): UseOmniVaultReturn => {
   const { connection } = useConnection();
-  const { wallet, publicKey, connected } = useWallet();
+  const { publicKey, connected } = useWallet();
   const anchorWallet = useAnchorWallet();
   
   // Service instance
@@ -96,6 +103,10 @@ export const useOmniVault = (): UseOmniVaultReturn => {
   const [selectedVault, setSelectedVault] = useState<(Vault & { publicKey: PublicKey }) | null>(null);
   const [userPosition, setUserPosition] = useState<UserPosition | null>(null);
   const [yieldTracker, setYieldTracker] = useState<YieldTracker | null>(null);
+  
+  // Balance states
+  const [userSolBalance, setUserSolBalance] = useState<number>(0);
+  const [minSolForVaultCreation, setMinSolForVaultCreation] = useState<number>(0);
   
   // Cross-chain data
   const [chainYields, setChainYields] = useState<ChainYield[]>([]);
@@ -202,10 +213,20 @@ export const useOmniVault = (): UseOmniVaultReturn => {
     ]);
   }, []);
 
-  // Load initial data when service is available
-  useEffect(() => {
-    if (service && publicKey) {
-      refreshData();
+  // Refresh user balance and vault creation requirements
+  const refreshBalance = useCallback(async () => {
+    if (!service || !publicKey) return;
+    
+    try {
+      const [balance, minRequired] = await Promise.all([
+        service.getUserSolBalance(publicKey),
+        service.getMinimumSolForVaultCreation()
+      ]);
+      
+      setUserSolBalance(balance);
+      setMinSolForVaultCreation(minRequired);
+    } catch (err) {
+      console.error('Failed to refresh balance:', err);
     }
   }, [service, publicKey]);
 
@@ -219,13 +240,16 @@ export const useOmniVault = (): UseOmniVaultReturn => {
     console.log('Refreshing data for user:', publicKey.toBase58());
     setLoading(true);
     try {
-      // Load vault store
-      const vaultStoreData = await service.getVaultStore();
+      // Load all data in parallel
+      const [vaultStoreData, vaults] = await Promise.all([
+        service.getVaultStore(),
+        service.getUserVaults(publicKey),
+        refreshBalance() // Refresh balance along with other data
+      ]);
+      
       setVaultStore(vaultStoreData);
       console.log('Vault store loaded:', vaultStoreData);
       
-      // Load user vaults
-      const vaults = await service.getUserVaults(publicKey);
       setUserVaults(vaults);
       console.log('User vaults loaded:', vaults.length, 'vaults');
       
@@ -241,7 +265,14 @@ export const useOmniVault = (): UseOmniVaultReturn => {
     } finally {
       setLoading(false);
     }
-  }, [service, publicKey, selectedVault]);
+  }, [service, publicKey, selectedVault, refreshBalance]);
+
+  // Load initial data when service is available
+  useEffect(() => {
+    if (service && publicKey) {
+      refreshData();
+    }
+  }, [service, publicKey, refreshData]);
 
   // Load specific vault data including position and yield tracker
   const loadVaultData = useCallback(async (vaultId: number) => {
@@ -260,7 +291,7 @@ export const useOmniVault = (): UseOmniVaultReturn => {
   }, [service, publicKey, selectedVault]);
 
   // Load yield tracker and process chain yields
-  const loadYieldTracker = useCallback(async (vaultId: number) => {
+  const loadYieldTracker = useCallback(async (_vaultId: number) => {
     if (!service || !publicKey || !selectedVault) return;
     
     try {
@@ -536,6 +567,35 @@ export const useOmniVault = (): UseOmniVaultReturn => {
     return service?.getChainName(chainId) || `Chain ${chainId}`;
   }, [service]);
 
+  // Request airdrop for testing (devnet/testnet only)
+  const requestAirdrop = useCallback(async (): Promise<string | null> => {
+    if (!service || !publicKey) {
+      setError('Service not available or wallet not connected');
+      return null;
+    }
+
+    try {
+      // Request 2 SOL airdrop
+      const signature = await service.provider.connection.requestAirdrop(
+        publicKey,
+        2 * 1e9 // 2 SOL in lamports
+      );
+      
+      // Wait for confirmation
+      await service.provider.connection.confirmTransaction(signature);
+      
+      // Refresh balance after airdrop
+      await refreshBalance();
+      
+      setError(null);
+      return signature;
+    } catch (err: any) {
+      console.error('Failed to request airdrop:', err);
+      setError(err.message || 'Failed to request airdrop. This only works on devnet/testnet.');
+      return null;
+    }
+  }, [service, publicKey, refreshBalance]);
+
   // Clear error
   const clearError = useCallback(() => {
     setError(null);
@@ -570,6 +630,10 @@ export const useOmniVault = (): UseOmniVaultReturn => {
     userPosition,
     yieldTracker,
     
+    // Balance information
+    userSolBalance,
+    minSolForVaultCreation,
+    
     // Cross-chain data
     chainYields,
     bestChain,
@@ -588,6 +652,10 @@ export const useOmniVault = (): UseOmniVaultReturn => {
     queryCrossChainYields,
     rebalanceVault,
     updateVaultConfig,
+    
+    // Balance utilities
+    refreshBalance,
+    requestAirdrop,
     
     // Real-time events
     recentEvents,

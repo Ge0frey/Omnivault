@@ -1,4 +1,4 @@
-import { Connection, PublicKey, SystemProgram, LAMPORTS_PER_SOL } from '@solana/web3.js';
+import { PublicKey, SystemProgram, LAMPORTS_PER_SOL } from '@solana/web3.js';
 import { Program, AnchorProvider, BN } from '@coral-xyz/anchor';
 import { TOKEN_PROGRAM_ID, getAssociatedTokenAddress, createAssociatedTokenAccountInstruction, getAccount } from '@solana/spl-token';
 import type { Omnivault } from '../idl/omnivault';
@@ -116,7 +116,7 @@ export interface RebalanceTriggeredEvent {
 
 export class OmniVaultService {
   private program: Program<Omnivault>;
-  private provider: AnchorProvider;
+  public provider: AnchorProvider; // Make provider public for airdrop functionality
   private eventListeners: Map<string, number> = new Map();
 
   constructor(provider: AnchorProvider) {
@@ -205,6 +205,16 @@ export class OmniVaultService {
       throw new Error('Wallet not connected');
     }
 
+    // Check user's SOL balance before proceeding
+    const userBalance = await this.getUserSolBalance(owner);
+    const requiredSol = await this.getMinimumSolForVaultCreation();
+    
+    if (userBalance < requiredSol) {
+      throw new Error(
+        `Insufficient SOL balance. You have ${userBalance.toFixed(4)} SOL, but need at least ${requiredSol.toFixed(4)} SOL to create a vault (for rent and transaction fees).`
+      );
+    }
+
     const [vaultStore] = this.getVaultStorePDA();
     
     // Get the current vault count to determine the next vault ID
@@ -234,8 +244,18 @@ export class OmniVaultService {
         .rpc();
 
       return { tx, vaultId, vaultAddress: vault };
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error creating vault:', error);
+      
+      // Provide more specific error messages
+      if (error?.message?.includes('insufficient funds') || 
+          error?.message?.includes('Attempt to debit an account') ||
+          error?.transactionMessage?.includes('Attempt to debit an account')) {
+        throw new Error(
+          `Insufficient SOL balance. You need at least ${requiredSol.toFixed(4)} SOL to create a vault. Please fund your wallet and try again.`
+        );
+      }
+      
       throw error;
     }
   }
@@ -602,6 +622,30 @@ export class OmniVaultService {
 
   lamportsToSol(lamports: number): number {
     return lamports / LAMPORTS_PER_SOL;
+  }
+
+  // Check user's SOL balance
+  async getUserSolBalance(publicKey?: PublicKey): Promise<number> {
+    const userKey = publicKey || this.provider.wallet.publicKey;
+    if (!userKey) {
+      throw new Error('Wallet not connected');
+    }
+    
+    const balance = await this.provider.connection.getBalance(userKey);
+    return this.lamportsToSol(balance);
+  }
+
+  // Calculate minimum SOL required to create a vault (rent + fees)
+  async getMinimumSolForVaultCreation(): Promise<number> {
+    // Estimate rent for vault account (~1000 bytes) and yield tracker (~800 bytes)
+    const vaultRent = await this.provider.connection.getMinimumBalanceForRentExemption(1000);
+    const yieldTrackerRent = await this.provider.connection.getMinimumBalanceForRentExemption(800);
+    
+    // Add some buffer for transaction fees (0.01 SOL should be more than enough)
+    const transactionFees = 0.01 * LAMPORTS_PER_SOL;
+    
+    const totalLamports = vaultRent + yieldTrackerRent + transactionFees;
+    return this.lamportsToSol(totalLamports);
   }
 
   // Event listeners for real-time updates
