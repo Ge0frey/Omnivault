@@ -1,23 +1,19 @@
 use anchor_lang::prelude::*;
-use anchor_spl::token::{self, Token, TokenAccount, Transfer, Mint};
+use anchor_spl::token::{self, Token, TokenAccount, Transfer};
 use anchor_lang::solana_program::{
     program::invoke_signed,
-    sysvar::{rent::Rent, Sysvar, clock::Clock},
+    sysvar::{clock::Clock},
     instruction::{AccountMeta, Instruction},
     system_instruction,
 };
-use anchor_spl::associated_token::AssociatedToken;
 use std::str::FromStr;
 
 declare_id!("66bzWSC6dWFKdAZDcdj7wbjHZ6YWBHB4o77tbP3twVnd");
 
 // LayerZero V2 Configuration
-const LAYERZERO_ENDPOINT: &str = "H3SKp4cL5rpzJDntDa2umKE9AHkGiyss1W8BNDndhHWp";
+const LAYERZERO_ENDPOINT: &str = "LZ1ZeTMZZnKWEcG2ukQpvJE2QnLEyV5uYPVfPjTvZmV";  // LayerZero Devnet Endpoint
 const MAX_CROSS_CHAIN_QUERIES: u8 = 10;
 const MIN_REBALANCE_INTERVAL: i64 = 3600; // 1 hour
-
-// Native SOL mint address (for tracking SOL deposits)
-const NATIVE_SOL_MINT: &str = "So11111111111111111111111111111111111111112";
 
 // Cross-chain identifiers for supported networks
 pub mod chain_ids {
@@ -28,11 +24,6 @@ pub mod chain_ids {
     pub const AVALANCHE: u16 = 106;
     pub const OPTIMISM: u16 = 111;
 }
-
-// Yield optimization constants
-const MIN_YIELD_DIFFERENTIAL: u64 = 100; // 1% in basis points
-const REBALANCE_COOLDOWN: i64 = 3600; // 1 hour in seconds
-const EMERGENCY_PAUSE_THRESHOLD: u64 = 1000; // 10% loss threshold
 
 #[program]
 pub mod omnivault {
@@ -180,6 +171,15 @@ pub mod omnivault {
         require!(!vault_store.emergency_pause, OmniVaultError::SystemPaused);
         require!(!vault.emergency_exit, OmniVaultError::VaultEmergencyExit);
         
+        // Get vault PDA seeds for signing
+        let bump = &[vault.bump];
+        let vault_seeds = &[
+            b"vault".as_ref(),
+            vault.owner.as_ref(),
+            &vault.id.to_le_bytes(),
+            bump,
+        ];
+
         // Transfer SOL from user to vault using system program
         let transfer_instruction = system_instruction::transfer(
             &ctx.accounts.user.key(),
@@ -187,13 +187,14 @@ pub mod omnivault {
             amount,
         );
         
-        anchor_lang::solana_program::program::invoke(
+        anchor_lang::solana_program::program::invoke_signed(
             &transfer_instruction,
             &[
                 ctx.accounts.user.to_account_info(),
                 vault.to_account_info(),
                 ctx.accounts.system_program.to_account_info(),
             ],
+            &[vault_seeds],
         )?;
         
         // Update vault and user position
@@ -235,13 +236,13 @@ pub mod omnivault {
         let withdrawal_amount = amount - fee;
         
         // Get vault data for seeds
+        let bump = &[vault.bump];
         let vault_seeds = &[
-            b"vault",
+            b"vault".as_ref(),
             vault.owner.as_ref(),
             &vault.id.to_le_bytes(),
-            &[vault.bump],
+            bump,
         ];
-        let signer_seeds = &[&vault_seeds[..]];
         
         // Transfer tokens from vault to user
         let cpi_accounts = Transfer {
@@ -250,6 +251,7 @@ pub mod omnivault {
             authority: vault.to_account_info(),
         };
         let cpi_program = ctx.accounts.token_program.to_account_info();
+        let signer_seeds: &[&[&[u8]]] = &[vault_seeds];
         let cpi_ctx = CpiContext::new_with_signer(cpi_program, cpi_accounts, signer_seeds);
         token::transfer(cpi_ctx, withdrawal_amount)?;
         
