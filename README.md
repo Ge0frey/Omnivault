@@ -157,10 +157,10 @@ OmniVault/
    npm install
    ```
 
-3. **Build the program**
+3. **Build the program and generate IDL**
    ```bash
-   cd solana-program
-   anchor build
+   # This builds the program and copies IDL to frontend
+   node scripts/generate-idl.js
    ```
 
 4. **Deploy to devnet** 🚀
@@ -177,6 +177,61 @@ OmniVault/
 
 6. **Access the application** 🌐
    Open [http://localhost:5173](http://localhost:5173) in your browser
+
+## 🔧 IDL Integration & Development
+
+### 📋 Automatic IDL Generation
+
+The integration between the Solana program and frontend is managed through the IDL (Interface Definition Language):
+
+```bash
+# Build program and copy IDL to frontend
+node scripts/generate-idl.js
+```
+
+This script automatically:
+1. 🏗️ Builds the Anchor program (`anchor build`)
+2. 📋 Copies generated IDL JSON to `frontend/src/idl/omnivault.json`
+3. 🔧 Copies TypeScript types to `frontend/src/idl/omnivault.ts`
+
+### 🔄 Development Workflow
+
+When making changes to the Solana program:
+
+```bash
+# 1. Make changes to solana-program/programs/omnivault/src/lib.rs
+# 2. Regenerate IDL and types
+node scripts/generate-idl.js
+
+# 3. Frontend will automatically use updated types
+cd frontend && npm run dev
+```
+
+### 🛠️ Manual IDL Update
+
+If needed, you can manually update the IDL:
+
+```bash
+cd solana-program
+anchor build
+cd ..
+cp solana-program/target/idl/omnivault.json frontend/src/idl/
+cp solana-program/target/types/omnivault.ts frontend/src/idl/
+```
+
+### 🔧 Service Integration
+
+The frontend service (`frontend/src/services/omnivault.ts`) uses:
+- 📋 **Generated IDL JSON** for program instantiation
+- 🔧 **TypeScript types** for compile-time safety
+- ⚙️ **`accountsPartial`** for flexible account resolution
+
+```typescript
+// Example service usage
+const service = createOmniVaultService(provider);
+await service.initialize();
+await service.createVault(RiskProfile.Moderate);
+```
 
 ## 🎮 Usage Guide
 
