@@ -1,58 +1,42 @@
+#!/usr/bin/env node
+
 const fs = require('fs');
 const path = require('path');
 
-// Possible paths for the IDL file
-const idlPaths = [
-  path.join(__dirname, '../solana-program/target/idl/omnivault.json'),
-  path.join(__dirname, '../solana-program/target/types/omnivault.json')
-];
-const outputPath = path.join(__dirname, '../frontend/src/idl/omnivault.ts');
+console.log('🚀 Generating IDL and copying to frontend...');
 
-// Read the IDL JSON file
+// Build the Anchor program first
+const { execSync } = require('child_process');
+
 try {
-  let idlPath;
-  for (const possiblePath of idlPaths) {
-    if (fs.existsSync(possiblePath)) {
-      idlPath = possiblePath;
-      break;
-    }
-  }
-
-  if (!idlPath) {
-    console.error('IDL file not found in any of these locations:');
-    idlPaths.forEach(p => console.error(`- ${p}`));
-    console.error('Please run "anchor build" first to generate the IDL');
-    process.exit(1);
-  }
-
-  console.log(`Found IDL file at ${idlPath}`);
-  const idlJson = fs.readFileSync(idlPath, 'utf8');
-  const idl = JSON.parse(idlJson);
+  console.log('📦 Building Anchor program...');
+  execSync('cd solana-program && anchor build', { stdio: 'inherit' });
   
-  // Create TypeScript file content
-  const tsContent = `// This file is auto-generated from the IDL
-// Do not edit manually
-
-export type OmnivaultIDL = ${JSON.stringify(idl, null, 2)};
-
-export const OmnivaultIDL: OmnivaultIDL = ${JSON.stringify(idl, null, 2)};
-
-export const IDL: OmnivaultIDL = OmnivaultIDL;
-`;
-
-  // Create the output directory if it doesn't exist
-  const outputDir = path.dirname(outputPath);
-  if (!fs.existsSync(outputDir)) {
-    fs.mkdirSync(outputDir, { recursive: true });
+  console.log('📋 Copying IDL files to frontend...');
+  
+  // Source paths
+  const sourceIdlPath = path.join(__dirname, '../solana-program/target/idl/omnivault.json');
+  const sourceTypesPath = path.join(__dirname, '../solana-program/target/types/omnivault.ts');
+  
+  // Destination paths
+  const destIdlPath = path.join(__dirname, '../frontend/src/idl/omnivault.json');
+  const destTypesPath = path.join(__dirname, '../frontend/src/idl/omnivault.ts');
+  
+  // Ensure destination directory exists
+  const destDir = path.join(__dirname, '../frontend/src/idl');
+  if (!fs.existsSync(destDir)) {
+    fs.mkdirSync(destDir, { recursive: true });
   }
-
-  // Write the TypeScript file
-  fs.writeFileSync(outputPath, tsContent);
-  console.log(`✅ IDL TypeScript file generated at ${outputPath}`);
-  console.log(`📋 Program ID: ${idl.metadata?.address || 'Not found'}`);
-  console.log(`🏗️  Instructions: ${idl.instructions?.length || 0}`);
-  console.log(`📊 Accounts: ${idl.accounts?.length || 0}`);
+  
+  // Copy files
+  fs.copyFileSync(sourceIdlPath, destIdlPath);
+  fs.copyFileSync(sourceTypesPath, destTypesPath);
+  
+  console.log('✅ IDL and types copied successfully!');
+  console.log(`   - IDL: ${destIdlPath}`);
+  console.log(`   - Types: ${destTypesPath}`);
+  
 } catch (error) {
-  console.error('❌ Error generating IDL TypeScript file:', error.message);
+  console.error('❌ Error generating IDL:', error.message);
   process.exit(1);
 } 

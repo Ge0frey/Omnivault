@@ -1,10 +1,11 @@
 import { Connection, PublicKey, SystemProgram } from '@solana/web3.js';
 import { Program, AnchorProvider, BN } from '@coral-xyz/anchor';
 import { TOKEN_PROGRAM_ID, getAssociatedTokenAddress } from '@solana/spl-token';
-import { IDL, OmnivaultIDL } from '../idl/omnivault';
+import type { Omnivault } from '../idl/omnivault';
+import omnivaultIdl from '../idl/omnivault.json';
 
 // Program ID from the IDL
-export const OMNIVAULT_PROGRAM_ID = new PublicKey('66bzWSC6dWFKdAZDcdj7wbjHZ6YWBHB4o77tbP3twVnd');
+export const OMNIVAULT_PROGRAM_ID = new PublicKey(omnivaultIdl.address);
 export const LAYERZERO_ENDPOINT_ID = new PublicKey('H3SKp4cL5rpzJDntDa2umKE9AHkGiyss1W8BNDndhHWp');
 
 // Chain IDs for cross-chain operations
@@ -26,7 +27,7 @@ export const RiskProfile = {
 
 export type RiskProfile = typeof RiskProfile[keyof typeof RiskProfile];
 
-// Type definitions based on the actual IDL structure
+// Type definitions based on the actual generated IDL structure
 export interface VaultStore {
   authority: PublicKey;
   totalVaults: BN;
@@ -111,13 +112,13 @@ export interface RebalanceTriggeredEvent {
 }
 
 export class OmniVaultService {
-  private program: Program<OmnivaultIDL>;
+  private program: Program<Omnivault>;
   private provider: AnchorProvider;
   private eventListeners: Map<string, number> = new Map();
 
   constructor(provider: AnchorProvider) {
     this.provider = provider;
-    this.program = new Program(IDL, provider);
+    this.program = new Program(omnivaultIdl as Omnivault, provider);
   }
 
   // Utility function to get vault store PDA
@@ -152,7 +153,7 @@ export class OmniVaultService {
     );
   }
 
-  // Utility function to get yield tracker PDA (if available in the program)
+  // Utility function to get yield tracker PDA
   getYieldTrackerPDA(vault: PublicKey): [PublicKey, number] {
     return PublicKey.findProgramAddressSync(
       [
@@ -175,11 +176,11 @@ export class OmniVaultService {
     try {
       const tx = await this.program.methods
         .initialize()
-        .accounts({
-          vault_store: vaultStore,
+        .accountsPartial({
+          vaultStore,
           authority,
-          system_program: SystemProgram.programId,
-        } as any)
+          systemProgram: SystemProgram.programId,
+        })
         .rpc();
 
       return tx;
@@ -204,8 +205,8 @@ export class OmniVaultService {
     const [vaultStore] = this.getVaultStorePDA();
     
     // Get the current vault count to determine the next vault ID
-    const vaultStoreAccount = await (this.program.account as any).vaultStore.fetch(vaultStore);
-    const vaultId = (vaultStoreAccount as any).totalVaults.toNumber();
+    const vaultStoreAccount = await this.program.account.vaultStore.fetch(vaultStore);
+    const vaultId = vaultStoreAccount.totalVaults.toNumber();
     
     const [vault] = this.getVaultPDA(owner, vaultId);
     const [yieldTracker] = this.getYieldTrackerPDA(vault);
@@ -215,18 +216,18 @@ export class OmniVaultService {
       const riskProfileIDL = { [riskProfile]: {} };
 
       const tx = await this.program.methods
-        .create_vault(
+        .createVault(
           riskProfileIDL, 
           new BN(minDeposit),
           targetChains
         )
-        .accounts({
+        .accountsPartial({
           vault,
-          yield_tracker: yieldTracker,
-          vault_store: vaultStore,
+          yieldTracker,
+          vaultStore,
           owner,
-          system_program: SystemProgram.programId,
-        } as any)
+          systemProgram: SystemProgram.programId,
+        })
         .rpc();
 
       return { tx, vaultId, vaultAddress: vault };
@@ -257,16 +258,16 @@ export class OmniVaultService {
     try {
       const tx = await this.program.methods
         .deposit(new BN(amount))
-        .accounts({
+        .accountsPartial({
           vault,
-          user_position: userPosition,
-          vault_store: vaultStore,
+          userPosition,
+          vaultStore,
           user,
-          user_token_account: userTokenAccount,
-          vault_token_account: vaultTokenAccount,
-          token_program: TOKEN_PROGRAM_ID,
-          system_program: SystemProgram.programId,
-        } as any)
+          userTokenAccount,
+          vaultTokenAccount,
+          tokenProgram: TOKEN_PROGRAM_ID,
+          systemProgram: SystemProgram.programId,
+        })
         .rpc();
 
       return tx;
@@ -297,15 +298,15 @@ export class OmniVaultService {
     try {
       const tx = await this.program.methods
         .withdraw(new BN(amount))
-        .accounts({
+        .accountsPartial({
           vault,
-          user_position: userPosition,
-          vault_store: vaultStore,
+          userPosition,
+          vaultStore,
           user,
-          user_token_account: userTokenAccount,
-          vault_token_account: vaultTokenAccount,
-          token_program: TOKEN_PROGRAM_ID,
-        } as any)
+          userTokenAccount,
+          vaultTokenAccount,
+          tokenProgram: TOKEN_PROGRAM_ID,
+        })
         .rpc();
 
       return tx;
@@ -332,15 +333,15 @@ export class OmniVaultService {
 
     try {
       const tx = await this.program.methods
-        .query_cross_chain_yields(targetChains || [101, 110])
-        .accounts({
+        .queryCrossChainYields(targetChains || [101, 110])
+        .accountsPartial({
           vault,
-          yield_tracker: yieldTracker,
+          yieldTracker,
           endpoint,
-          oapp_config: oappConfig,
+          oappConfig,
           payer: user,
-          system_program: SystemProgram.programId,
-        } as any)
+          systemProgram: SystemProgram.programId,
+        })
         .rpc();
 
       return tx;
@@ -363,12 +364,12 @@ export class OmniVaultService {
 
     try {
       const tx = await this.program.methods
-        .rebalance_vault(targetChain)
-        .accounts({
+        .rebalanceVault(targetChain)
+        .accountsPartial({
           vault,
-          vault_store: vaultStore,
+          vaultStore,
           authority: user,
-        } as any)
+        })
         .rpc();
 
       return tx;
@@ -384,6 +385,8 @@ export class OmniVaultService {
     config: {
       newMinDeposit?: number;
       newActiveStatus?: boolean;
+      newRebalanceThreshold?: number;
+      newTargetChains?: number[];
     }
   ): Promise<string> {
     const user = this.provider.wallet.publicKey;
@@ -396,16 +399,16 @@ export class OmniVaultService {
 
     try {
       const tx = await this.program.methods
-        .update_vault_config(
+        .updateVaultConfig(
           config.newMinDeposit ? new BN(config.newMinDeposit) : null,
           config.newActiveStatus ?? null,
-          null, // rebalance_threshold
-          null  // target_chains
+          config.newRebalanceThreshold ? new BN(config.newRebalanceThreshold) : null,
+          config.newTargetChains ?? null
         )
-        .accounts({
+        .accountsPartial({
           vault,
           owner: user,
-        } as any)
+        })
         .rpc();
 
       return tx;
@@ -419,7 +422,7 @@ export class OmniVaultService {
   async getVaultStore(): Promise<VaultStore | null> {
     try {
       const [vaultStore] = this.getVaultStorePDA();
-      const account = await (this.program.account as any).vaultStore.fetch(vaultStore);
+      const account = await this.program.account.vaultStore.fetch(vaultStore);
       return account as VaultStore;
     } catch (error) {
       console.error('Error fetching vault store:', error);
@@ -431,7 +434,7 @@ export class OmniVaultService {
   async getVault(owner: PublicKey, vaultId: number): Promise<Vault | null> {
     try {
       const [vault] = this.getVaultPDA(owner, vaultId);
-      const account = await (this.program.account as any).vault.fetch(vault);
+      const account = await this.program.account.vault.fetch(vault);
       return account as Vault;
     } catch (error) {
       console.error('Error fetching vault:', error);
@@ -443,7 +446,7 @@ export class OmniVaultService {
   async getUserPosition(user: PublicKey, vault: PublicKey): Promise<UserPosition | null> {
     try {
       const [userPosition] = this.getUserPositionPDA(user, vault);
-      const account = await (this.program.account as any).userPosition.fetch(userPosition);
+      const account = await this.program.account.userPosition.fetch(userPosition);
       return account as UserPosition;
     } catch (error) {
       console.error('Error fetching user position:', error);
@@ -455,7 +458,7 @@ export class OmniVaultService {
   async getYieldTracker(vault: PublicKey): Promise<YieldTracker | null> {
     try {
       const [yieldTracker] = this.getYieldTrackerPDA(vault);
-      const account = await (this.program.account as any).yieldTracker.fetch(yieldTracker);
+      const account = await this.program.account.yieldTracker.fetch(yieldTracker);
       return account as YieldTracker;
     } catch (error) {
       console.error('Error fetching yield tracker:', error);
@@ -466,7 +469,7 @@ export class OmniVaultService {
   // Fetch all vaults for a user
   async getUserVaults(user: PublicKey): Promise<Vault[]> {
     try {
-      const vaults = await (this.program.account as any).vault.all([
+      const vaults = await this.program.account.vault.all([
         {
           memcmp: {
             offset: 8, // Skip discriminator
@@ -495,25 +498,65 @@ export class OmniVaultService {
     return chainNames[chainId] || `Chain ${chainId}`;
   }
 
-  // Event listeners (simplified for now)
-  onVaultCreated(): () => void {
-    // TODO: Implement event listening
-    return () => {};
+  // Event listeners for real-time updates
+  onVaultCreated(callback: (event: VaultCreatedEvent) => void): () => void {
+    try {
+      const listenerId = this.program.addEventListener('vaultCreated', (event) => {
+        callback(event as VaultCreatedEvent);
+      });
+      
+      this.eventListeners.set('vaultCreated', listenerId);
+      
+      return () => this.removeEventListener('vaultCreated');
+    } catch (error) {
+      console.error('Error setting up vault created listener:', error);
+      return () => {};
+    }
   }
 
-  onDepositMade(): () => void {
-    // TODO: Implement event listening
-    return () => {};
+  onDepositMade(callback: (event: DepositMadeEvent) => void): () => void {
+    try {
+      const listenerId = this.program.addEventListener('depositMade', (event) => {
+        callback(event as DepositMadeEvent);
+      });
+      
+      this.eventListeners.set('depositMade', listenerId);
+      
+      return () => this.removeEventListener('depositMade');
+    } catch (error) {
+      console.error('Error setting up deposit made listener:', error);
+      return () => {};
+    }
   }
 
-  onYieldDataReceived(): () => void {
-    // TODO: Implement event listening
-    return () => {};
+  onYieldDataReceived(callback: (event: YieldDataReceivedEvent) => void): () => void {
+    try {
+      const listenerId = this.program.addEventListener('yieldDataReceived', (event) => {
+        callback(event as YieldDataReceivedEvent);
+      });
+      
+      this.eventListeners.set('yieldDataReceived', listenerId);
+      
+      return () => this.removeEventListener('yieldDataReceived');
+    } catch (error) {
+      console.error('Error setting up yield data received listener:', error);
+      return () => {};
+    }
   }
 
-  onRebalanceTriggered(): () => void {
-    // TODO: Implement event listening
-    return () => {};
+  onRebalanceTriggered(callback: (event: RebalanceTriggeredEvent) => void): () => void {
+    try {
+      const listenerId = this.program.addEventListener('rebalanceTriggered', (event) => {
+        callback(event as RebalanceTriggeredEvent);
+      });
+      
+      this.eventListeners.set('rebalanceTriggered', listenerId);
+      
+      return () => this.removeEventListener('rebalanceTriggered');
+    } catch (error) {
+      console.error('Error setting up rebalance triggered listener:', error);
+      return () => {};
+    }
   }
 
   // Remove event listener
@@ -539,7 +582,7 @@ export class OmniVaultService {
   // Subscribe to account changes (for real-time updates)
   subscribeToVault(vault: PublicKey, callback: (account: Vault) => void) {
     try {
-      return (this.program.account as any).vault.subscribe(vault, 'confirmed').on('change', callback);
+      return this.program.account.vault.subscribe(vault, 'confirmed').on('change', callback);
     } catch (error) {
       console.error('Error subscribing to vault:', error);
       return null;
@@ -548,17 +591,20 @@ export class OmniVaultService {
 
   subscribeToUserPosition(userPosition: PublicKey, callback: (account: UserPosition) => void) {
     try {
-      return (this.program.account as any).userPosition.subscribe(userPosition, 'confirmed').on('change', callback);
+      return this.program.account.userPosition.subscribe(userPosition, 'confirmed').on('change', callback);
     } catch (error) {
       console.error('Error subscribing to user position:', error);
       return null;
     }
   }
 
-  // Account subscriptions (simplified for now)
-  subscribeToYieldTracker(): number {
-    // TODO: Implement account subscription
-    return 0;
+  subscribeToYieldTracker(yieldTracker: PublicKey, callback: (account: YieldTracker) => void) {
+    try {
+      return this.program.account.yieldTracker.subscribe(yieldTracker, 'confirmed').on('change', callback);
+    } catch (error) {
+      console.error('Error subscribing to yield tracker:', error);
+      return null;
+    }
   }
 
   // Cleanup method

@@ -1,10 +1,4 @@
-/**
- * Program IDL in camelCase format in order to be used in JS/TS.
- *
- * Note that this is only a type helper and is not the actual IDL. The original
- * IDL can be found at `target/idl/omnivault.json`.
- */
-export type Omnivault = {
+{
   "address": "66bzWSC6dWFKdAZDcdj7wbjHZ6YWBHB4o77tbP3twVnd",
   "metadata": {
     "name": "omnivault",
@@ -14,7 +8,7 @@ export type Omnivault = {
   },
   "instructions": [
     {
-      "name": "createVault",
+      "name": "create_vault",
       "docs": [
         "Create a new vault with specified risk profile and strategy"
       ],
@@ -51,13 +45,13 @@ export type Omnivault = {
               {
                 "kind": "account",
                 "path": "vault_store.total_vaults",
-                "account": "vaultStore"
+                "account": "VaultStore"
               }
             ]
           }
         },
         {
-          "name": "yieldTracker",
+          "name": "yield_tracker",
           "writable": true,
           "pda": {
             "seeds": [
@@ -87,7 +81,7 @@ export type Omnivault = {
           }
         },
         {
-          "name": "vaultStore",
+          "name": "vault_store",
           "writable": true
         },
         {
@@ -96,25 +90,25 @@ export type Omnivault = {
           "signer": true
         },
         {
-          "name": "systemProgram",
+          "name": "system_program",
           "address": "11111111111111111111111111111111"
         }
       ],
       "args": [
         {
-          "name": "riskProfile",
+          "name": "risk_profile",
           "type": {
             "defined": {
-              "name": "riskProfile"
+              "name": "RiskProfile"
             }
           }
         },
         {
-          "name": "minDeposit",
+          "name": "min_deposit",
           "type": "u64"
         },
         {
-          "name": "targetChains",
+          "name": "target_chains",
           "type": {
             "vec": "u16"
           }
@@ -142,7 +136,7 @@ export type Omnivault = {
           "writable": true
         },
         {
-          "name": "userPosition",
+          "name": "user_position",
           "writable": true,
           "pda": {
             "seeds": [
@@ -171,7 +165,7 @@ export type Omnivault = {
           }
         },
         {
-          "name": "vaultStore"
+          "name": "vault_store"
         },
         {
           "name": "user",
@@ -179,19 +173,19 @@ export type Omnivault = {
           "signer": true
         },
         {
-          "name": "userTokenAccount",
+          "name": "user_token_account",
           "writable": true
         },
         {
-          "name": "vaultTokenAccount",
+          "name": "vault_token_account",
           "writable": true
         },
         {
-          "name": "tokenProgram",
+          "name": "token_program",
           "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
         },
         {
-          "name": "systemProgram",
+          "name": "system_program",
           "address": "11111111111111111111111111111111"
         }
       ],
@@ -203,7 +197,7 @@ export type Omnivault = {
       ]
     },
     {
-      "name": "emergencyPause",
+      "name": "emergency_pause",
       "docs": [
         "Emergency pause system (admin only)"
       ],
@@ -219,14 +213,14 @@ export type Omnivault = {
       ],
       "accounts": [
         {
-          "name": "vaultStore",
+          "name": "vault_store",
           "writable": true
         },
         {
           "name": "authority",
           "signer": true,
           "relations": [
-            "vaultStore"
+            "vault_store"
           ]
         }
       ],
@@ -249,7 +243,7 @@ export type Omnivault = {
       ],
       "accounts": [
         {
-          "name": "vaultStore",
+          "name": "vault_store",
           "writable": true,
           "pda": {
             "seeds": [
@@ -278,14 +272,14 @@ export type Omnivault = {
           "signer": true
         },
         {
-          "name": "systemProgram",
+          "name": "system_program",
           "address": "11111111111111111111111111111111"
         }
       ],
       "args": []
     },
     {
-      "name": "lzReceive",
+      "name": "lz_receive",
       "docs": [
         "Receive cross-chain yield data and trigger rebalancing if needed"
       ],
@@ -305,14 +299,14 @@ export type Omnivault = {
           "writable": true
         },
         {
-          "name": "yieldTracker",
+          "name": "yield_tracker",
           "writable": true
         },
         {
           "name": "endpoint"
         },
         {
-          "name": "oappConfig"
+          "name": "oapp_config"
         },
         {
           "name": "payer",
@@ -320,13 +314,13 @@ export type Omnivault = {
           "signer": true
         },
         {
-          "name": "systemProgram",
+          "name": "system_program",
           "address": "11111111111111111111111111111111"
         }
       ],
       "args": [
         {
-          "name": "srcChainId",
+          "name": "src_chain_id",
           "type": "u16"
         },
         {
@@ -336,7 +330,7 @@ export type Omnivault = {
       ]
     },
     {
-      "name": "lzReceiveTypes",
+      "name": "lz_receive_types",
       "docs": [
         "Get vault types for LayerZero receive instruction"
       ],
@@ -355,13 +349,13 @@ export type Omnivault = {
           "name": "vault"
         },
         {
-          "name": "yieldTracker"
+          "name": "yield_tracker"
         },
         {
           "name": "endpoint"
         },
         {
-          "name": "oappConfig"
+          "name": "oapp_config"
         },
         {
           "name": "payer",
@@ -370,13 +364,13 @@ export type Omnivault = {
       ],
       "args": [
         {
-          "name": "srcChainId",
+          "name": "src_chain_id",
           "type": "u16"
         }
       ]
     },
     {
-      "name": "queryCrossChainYields",
+      "name": "query_cross_chain_yields",
       "docs": [
         "Send cross-chain yield query via LayerZero"
       ],
@@ -395,14 +389,14 @@ export type Omnivault = {
           "name": "vault"
         },
         {
-          "name": "yieldTracker",
+          "name": "yield_tracker",
           "writable": true
         },
         {
           "name": "endpoint"
         },
         {
-          "name": "oappConfig"
+          "name": "oapp_config"
         },
         {
           "name": "payer",
@@ -410,13 +404,13 @@ export type Omnivault = {
           "signer": true
         },
         {
-          "name": "systemProgram",
+          "name": "system_program",
           "address": "11111111111111111111111111111111"
         }
       ],
       "args": [
         {
-          "name": "targetChains",
+          "name": "target_chains",
           "type": {
             "vec": "u16"
           }
@@ -424,7 +418,7 @@ export type Omnivault = {
       ]
     },
     {
-      "name": "rebalanceVault",
+      "name": "rebalance_vault",
       "docs": [
         "Manual rebalance vault strategy (admin only)"
       ],
@@ -444,7 +438,7 @@ export type Omnivault = {
           "writable": true
         },
         {
-          "name": "vaultStore"
+          "name": "vault_store"
         },
         {
           "name": "authority",
@@ -453,13 +447,13 @@ export type Omnivault = {
       ],
       "args": [
         {
-          "name": "targetChain",
+          "name": "target_chain",
           "type": "u16"
         }
       ]
     },
     {
-      "name": "resumeOperations",
+      "name": "resume_operations",
       "docs": [
         "Resume system operations (admin only)"
       ],
@@ -475,21 +469,21 @@ export type Omnivault = {
       ],
       "accounts": [
         {
-          "name": "vaultStore",
+          "name": "vault_store",
           "writable": true
         },
         {
           "name": "authority",
           "signer": true,
           "relations": [
-            "vaultStore"
+            "vault_store"
           ]
         }
       ],
       "args": []
     },
     {
-      "name": "updateVaultConfig",
+      "name": "update_vault_config",
       "docs": [
         "Update vault configuration (owner only)"
       ],
@@ -518,25 +512,25 @@ export type Omnivault = {
       ],
       "args": [
         {
-          "name": "newMinDeposit",
+          "name": "new_min_deposit",
           "type": {
             "option": "u64"
           }
         },
         {
-          "name": "newActiveStatus",
+          "name": "new_active_status",
           "type": {
             "option": "bool"
           }
         },
         {
-          "name": "newRebalanceThreshold",
+          "name": "new_rebalance_threshold",
           "type": {
             "option": "u64"
           }
         },
         {
-          "name": "newTargetChains",
+          "name": "new_target_chains",
           "type": {
             "option": {
               "vec": "u16"
@@ -566,11 +560,11 @@ export type Omnivault = {
           "writable": true
         },
         {
-          "name": "userPosition",
+          "name": "user_position",
           "writable": true
         },
         {
-          "name": "vaultStore"
+          "name": "vault_store"
         },
         {
           "name": "user",
@@ -578,15 +572,15 @@ export type Omnivault = {
           "signer": true
         },
         {
-          "name": "userTokenAccount",
+          "name": "user_token_account",
           "writable": true
         },
         {
-          "name": "vaultTokenAccount",
+          "name": "vault_token_account",
           "writable": true
         },
         {
-          "name": "tokenProgram",
+          "name": "token_program",
           "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
         }
       ],
@@ -600,7 +594,7 @@ export type Omnivault = {
   ],
   "accounts": [
     {
-      "name": "userPosition",
+      "name": "UserPosition",
       "discriminator": [
         251,
         248,
@@ -613,7 +607,7 @@ export type Omnivault = {
       ]
     },
     {
-      "name": "vault",
+      "name": "Vault",
       "discriminator": [
         211,
         8,
@@ -626,7 +620,7 @@ export type Omnivault = {
       ]
     },
     {
-      "name": "vaultStore",
+      "name": "VaultStore",
       "discriminator": [
         117,
         218,
@@ -639,7 +633,7 @@ export type Omnivault = {
       ]
     },
     {
-      "name": "yieldTracker",
+      "name": "YieldTracker",
       "discriminator": [
         113,
         168,
@@ -654,7 +648,7 @@ export type Omnivault = {
   ],
   "events": [
     {
-      "name": "depositMade",
+      "name": "DepositMade",
       "discriminator": [
         210,
         201,
@@ -667,7 +661,7 @@ export type Omnivault = {
       ]
     },
     {
-      "name": "emergencyPauseActivated",
+      "name": "EmergencyPauseActivated",
       "discriminator": [
         27,
         50,
@@ -680,7 +674,7 @@ export type Omnivault = {
       ]
     },
     {
-      "name": "manualRebalance",
+      "name": "ManualRebalance",
       "discriminator": [
         77,
         139,
@@ -693,7 +687,7 @@ export type Omnivault = {
       ]
     },
     {
-      "name": "rebalanceExecuted",
+      "name": "RebalanceExecuted",
       "discriminator": [
         194,
         41,
@@ -706,7 +700,7 @@ export type Omnivault = {
       ]
     },
     {
-      "name": "rebalanceTriggered",
+      "name": "RebalanceTriggered",
       "discriminator": [
         17,
         123,
@@ -719,7 +713,7 @@ export type Omnivault = {
       ]
     },
     {
-      "name": "systemEmergencyPause",
+      "name": "SystemEmergencyPause",
       "discriminator": [
         212,
         4,
@@ -732,7 +726,7 @@ export type Omnivault = {
       ]
     },
     {
-      "name": "systemResumed",
+      "name": "SystemResumed",
       "discriminator": [
         153,
         164,
@@ -745,7 +739,7 @@ export type Omnivault = {
       ]
     },
     {
-      "name": "vaultConfigUpdated",
+      "name": "VaultConfigUpdated",
       "discriminator": [
         72,
         22,
@@ -758,7 +752,7 @@ export type Omnivault = {
       ]
     },
     {
-      "name": "vaultCreated",
+      "name": "VaultCreated",
       "discriminator": [
         117,
         25,
@@ -771,7 +765,7 @@ export type Omnivault = {
       ]
     },
     {
-      "name": "withdrawalMade",
+      "name": "WithdrawalMade",
       "discriminator": [
         253,
         86,
@@ -784,7 +778,7 @@ export type Omnivault = {
       ]
     },
     {
-      "name": "yieldDataReceived",
+      "name": "YieldDataReceived",
       "discriminator": [
         100,
         32,
@@ -797,7 +791,7 @@ export type Omnivault = {
       ]
     },
     {
-      "name": "yieldQuerySent",
+      "name": "YieldQuerySent",
       "discriminator": [
         95,
         120,
@@ -813,103 +807,103 @@ export type Omnivault = {
   "errors": [
     {
       "code": 6000,
-      "name": "invalidAmount",
+      "name": "InvalidAmount",
       "msg": "Invalid amount provided"
     },
     {
       "code": 6001,
-      "name": "depositTooSmall",
+      "name": "DepositTooSmall",
       "msg": "Deposit amount is too small"
     },
     {
       "code": 6002,
-      "name": "vaultInactive",
+      "name": "VaultInactive",
       "msg": "Vault is not active"
     },
     {
       "code": 6003,
-      "name": "insufficientBalance",
+      "name": "InsufficientBalance",
       "msg": "Insufficient balance"
     },
     {
       "code": 6004,
-      "name": "invalidLayerZeroEndpoint",
+      "name": "InvalidLayerZeroEndpoint",
       "msg": "Invalid LayerZero endpoint"
     },
     {
       "code": 6005,
-      "name": "invalidPayload",
+      "name": "InvalidPayload",
       "msg": "Invalid payload"
     },
     {
       "code": 6006,
-      "name": "invalidVaultId",
+      "name": "InvalidVaultId",
       "msg": "Invalid vault ID"
     },
     {
       "code": 6007,
-      "name": "rebalanceTooFrequent",
+      "name": "RebalanceTooFrequent",
       "msg": "Rebalance too frequent"
     },
     {
       "code": 6008,
-      "name": "unauthorizedCaller",
+      "name": "UnauthorizedCaller",
       "msg": "Unauthorized caller"
     },
     {
       "code": 6009,
-      "name": "systemPaused",
+      "name": "SystemPaused",
       "msg": "System paused"
     },
     {
       "code": 6010,
-      "name": "invalidChainConfiguration",
+      "name": "InvalidChainConfiguration",
       "msg": "Invalid chain configuration"
     },
     {
       "code": 6011,
-      "name": "tooManyChains",
+      "name": "TooManyChains",
       "msg": "Too many chains"
     },
     {
       "code": 6012,
-      "name": "invalidThreshold",
+      "name": "InvalidThreshold",
       "msg": "Invalid threshold"
     },
     {
       "code": 6013,
-      "name": "invalidNonce",
+      "name": "InvalidNonce",
       "msg": "Invalid nonce"
     },
     {
       "code": 6014,
-      "name": "unsupportedAction",
+      "name": "UnsupportedAction",
       "msg": "Unsupported action"
     },
     {
       "code": 6015,
-      "name": "invalidTargetChain",
+      "name": "InvalidTargetChain",
       "msg": "Invalid target chain"
     },
     {
       "code": 6016,
-      "name": "queryTooFrequent",
+      "name": "QueryTooFrequent",
       "msg": "Query too frequent"
     },
     {
       "code": 6017,
-      "name": "vaultEmergencyExit",
+      "name": "VaultEmergencyExit",
       "msg": "Vault emergency exit"
     }
   ],
   "types": [
     {
-      "name": "chainYield",
+      "name": "ChainYield",
       "type": {
         "kind": "struct",
         "fields": [
           {
-            "name": "chainId",
+            "name": "chain_id",
             "type": "u16"
           },
           {
@@ -921,23 +915,23 @@ export type Omnivault = {
             "type": "u64"
           },
           {
-            "name": "riskScore",
+            "name": "risk_score",
             "type": "u64"
           },
           {
-            "name": "lastUpdated",
+            "name": "last_updated",
             "type": "i64"
           }
         ]
       }
     },
     {
-      "name": "depositMade",
+      "name": "DepositMade",
       "type": {
         "kind": "struct",
         "fields": [
           {
-            "name": "vaultId",
+            "name": "vault_id",
             "type": "u64"
           },
           {
@@ -949,39 +943,39 @@ export type Omnivault = {
             "type": "u64"
           },
           {
-            "name": "newTotal",
+            "name": "new_total",
             "type": "u64"
           }
         ]
       }
     },
     {
-      "name": "emergencyPauseActivated",
+      "name": "EmergencyPauseActivated",
       "type": {
         "kind": "struct",
         "fields": [
           {
-            "name": "vaultId",
+            "name": "vault_id",
             "type": "u64"
           },
           {
-            "name": "triggeredByChain",
+            "name": "triggered_by_chain",
             "type": "u16"
           }
         ]
       }
     },
     {
-      "name": "manualRebalance",
+      "name": "ManualRebalance",
       "type": {
         "kind": "struct",
         "fields": [
           {
-            "name": "vaultId",
+            "name": "vault_id",
             "type": "u64"
           },
           {
-            "name": "targetChain",
+            "name": "target_chain",
             "type": "u16"
           },
           {
@@ -992,69 +986,69 @@ export type Omnivault = {
       }
     },
     {
-      "name": "rebalanceExecuted",
+      "name": "RebalanceExecuted",
       "type": {
         "kind": "struct",
         "fields": [
           {
-            "name": "vaultId",
+            "name": "vault_id",
             "type": "u64"
           },
           {
-            "name": "allocationData",
+            "name": "allocation_data",
             "type": "bytes"
           }
         ]
       }
     },
     {
-      "name": "rebalanceTriggered",
+      "name": "RebalanceTriggered",
       "type": {
         "kind": "struct",
         "fields": [
           {
-            "name": "vaultId",
+            "name": "vault_id",
             "type": "u64"
           },
           {
-            "name": "fromChain",
+            "name": "from_chain",
             "type": "u16"
           },
           {
-            "name": "toChain",
+            "name": "to_chain",
             "type": "u16"
           },
           {
-            "name": "yieldImprovement",
+            "name": "yield_improvement",
             "type": "u64"
           }
         ]
       }
     },
     {
-      "name": "riskProfile",
+      "name": "RiskProfile",
       "type": {
         "kind": "enum",
         "variants": [
           {
-            "name": "conservative"
+            "name": "Conservative"
           },
           {
-            "name": "moderate"
+            "name": "Moderate"
           },
           {
-            "name": "aggressive"
+            "name": "Aggressive"
           }
         ]
       }
     },
     {
-      "name": "systemEmergencyPause",
+      "name": "SystemEmergencyPause",
       "type": {
         "kind": "struct",
         "fields": [
           {
-            "name": "triggeredBy",
+            "name": "triggered_by",
             "type": "pubkey"
           },
           {
@@ -1065,12 +1059,12 @@ export type Omnivault = {
       }
     },
     {
-      "name": "systemResumed",
+      "name": "SystemResumed",
       "type": {
         "kind": "struct",
         "fields": [
           {
-            "name": "resumedBy",
+            "name": "resumed_by",
             "type": "pubkey"
           },
           {
@@ -1081,7 +1075,7 @@ export type Omnivault = {
       }
     },
     {
-      "name": "userPosition",
+      "name": "UserPosition",
       "type": {
         "kind": "struct",
         "fields": [
@@ -1098,11 +1092,11 @@ export type Omnivault = {
             "type": "u64"
           },
           {
-            "name": "lastDeposit",
+            "name": "last_deposit",
             "type": "i64"
           },
           {
-            "name": "lastWithdrawal",
+            "name": "last_withdrawal",
             "type": "i64"
           },
           {
@@ -1113,7 +1107,7 @@ export type Omnivault = {
       }
     },
     {
-      "name": "vault",
+      "name": "Vault",
       "type": {
         "kind": "struct",
         "fields": [
@@ -1126,53 +1120,53 @@ export type Omnivault = {
             "type": "pubkey"
           },
           {
-            "name": "riskProfile",
+            "name": "risk_profile",
             "type": {
               "defined": {
-                "name": "riskProfile"
+                "name": "RiskProfile"
               }
             }
           },
           {
-            "name": "totalDeposits",
+            "name": "total_deposits",
             "type": "u64"
           },
           {
-            "name": "totalYield",
+            "name": "total_yield",
             "type": "u64"
           },
           {
-            "name": "minDeposit",
+            "name": "min_deposit",
             "type": "u64"
           },
           {
-            "name": "isActive",
+            "name": "is_active",
             "type": "bool"
           },
           {
-            "name": "lastRebalance",
+            "name": "last_rebalance",
             "type": "i64"
           },
           {
-            "name": "targetChains",
+            "name": "target_chains",
             "type": {
               "vec": "u16"
             }
           },
           {
-            "name": "currentBestChain",
+            "name": "current_best_chain",
             "type": "u16"
           },
           {
-            "name": "currentApy",
+            "name": "current_apy",
             "type": "u64"
           },
           {
-            "name": "rebalanceThreshold",
+            "name": "rebalance_threshold",
             "type": "u64"
           },
           {
-            "name": "emergencyExit",
+            "name": "emergency_exit",
             "type": "bool"
           },
           {
@@ -1183,28 +1177,28 @@ export type Omnivault = {
       }
     },
     {
-      "name": "vaultConfigUpdated",
+      "name": "VaultConfigUpdated",
       "type": {
         "kind": "struct",
         "fields": [
           {
-            "name": "vaultId",
+            "name": "vault_id",
             "type": "u64"
           },
           {
-            "name": "updatedBy",
+            "name": "updated_by",
             "type": "pubkey"
           }
         ]
       }
     },
     {
-      "name": "vaultCreated",
+      "name": "VaultCreated",
       "type": {
         "kind": "struct",
         "fields": [
           {
-            "name": "vaultId",
+            "name": "vault_id",
             "type": "u64"
           },
           {
@@ -1212,15 +1206,15 @@ export type Omnivault = {
             "type": "pubkey"
           },
           {
-            "name": "riskProfile",
+            "name": "risk_profile",
             "type": {
               "defined": {
-                "name": "riskProfile"
+                "name": "RiskProfile"
               }
             }
           },
           {
-            "name": "targetChains",
+            "name": "target_chains",
             "type": {
               "vec": "u16"
             }
@@ -1229,7 +1223,7 @@ export type Omnivault = {
       }
     },
     {
-      "name": "vaultStore",
+      "name": "VaultStore",
       "type": {
         "kind": "struct",
         "fields": [
@@ -1238,15 +1232,15 @@ export type Omnivault = {
             "type": "pubkey"
           },
           {
-            "name": "totalVaults",
+            "name": "total_vaults",
             "type": "u64"
           },
           {
-            "name": "totalTvl",
+            "name": "total_tvl",
             "type": "u64"
           },
           {
-            "name": "feeRate",
+            "name": "fee_rate",
             "type": "u16"
           },
           {
@@ -1254,15 +1248,15 @@ export type Omnivault = {
             "type": "u8"
           },
           {
-            "name": "lastGlobalRebalance",
+            "name": "last_global_rebalance",
             "type": "i64"
           },
           {
-            "name": "emergencyPause",
+            "name": "emergency_pause",
             "type": "bool"
           },
           {
-            "name": "supportedChains",
+            "name": "supported_chains",
             "type": {
               "vec": "u16"
             }
@@ -1271,12 +1265,12 @@ export type Omnivault = {
       }
     },
     {
-      "name": "withdrawalMade",
+      "name": "WithdrawalMade",
       "type": {
         "kind": "struct",
         "fields": [
           {
-            "name": "vaultId",
+            "name": "vault_id",
             "type": "u64"
           },
           {
@@ -1295,16 +1289,16 @@ export type Omnivault = {
       }
     },
     {
-      "name": "yieldDataReceived",
+      "name": "YieldDataReceived",
       "type": {
         "kind": "struct",
         "fields": [
           {
-            "name": "vaultId",
+            "name": "vault_id",
             "type": "u64"
           },
           {
-            "name": "chainId",
+            "name": "chain_id",
             "type": "u16"
           },
           {
@@ -1316,19 +1310,19 @@ export type Omnivault = {
             "type": "u64"
           },
           {
-            "name": "riskScore",
+            "name": "risk_score",
             "type": "u64"
           }
         ]
       }
     },
     {
-      "name": "yieldQuerySent",
+      "name": "YieldQuerySent",
       "type": {
         "kind": "struct",
         "fields": [
           {
-            "name": "vaultId",
+            "name": "vault_id",
             "type": "u64"
           },
           {
@@ -1345,7 +1339,7 @@ export type Omnivault = {
       }
     },
     {
-      "name": "yieldTracker",
+      "name": "YieldTracker",
       "type": {
         "kind": "struct",
         "fields": [
@@ -1354,21 +1348,21 @@ export type Omnivault = {
             "type": "pubkey"
           },
           {
-            "name": "chainYields",
+            "name": "chain_yields",
             "type": {
               "vec": {
                 "defined": {
-                  "name": "chainYield"
+                  "name": "ChainYield"
                 }
               }
             }
           },
           {
-            "name": "lastUpdate",
+            "name": "last_update",
             "type": "i64"
           },
           {
-            "name": "queryNonce",
+            "name": "query_nonce",
             "type": "u64"
           },
           {
@@ -1379,4 +1373,4 @@ export type Omnivault = {
       }
     }
   ]
-};
+}
