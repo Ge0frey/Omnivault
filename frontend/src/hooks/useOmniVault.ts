@@ -7,7 +7,6 @@ import type {
   Vault, 
   UserPosition, 
   VaultStore, 
-  RiskProfile,
   YieldTracker,
   ChainYield,
   VaultCreatedEvent,
@@ -15,6 +14,7 @@ import type {
   YieldDataReceivedEvent,
   RebalanceTriggeredEvent,
 } from '../services/omnivault';
+import { RiskProfile } from '../services/omnivault';
 import { createOmniVaultService, CHAIN_IDS } from '../services/omnivault';
 
 export interface UseOmniVaultReturn {
@@ -276,9 +276,21 @@ export const useOmniVault = (): UseOmniVaultReturn => {
     }
   }, [service, publicKey]);
 
+  // Helper to convert risk profile object to string
+  const getRiskProfileString = useCallback((riskProfile: { [key: string]: {} }): RiskProfile => {
+    const keys = Object.keys(riskProfile);
+    if (keys.length > 0) {
+      const key = keys[0];
+      return key as RiskProfile;
+    }
+    return RiskProfile.Conservative;
+  }, []);
+
   // Find best chain based on risk profile
-  const findBestChain = useCallback((yields: ChainYield[], riskProfile: RiskProfile): ChainYield | null => {
+  const findBestChain = useCallback((yields: ChainYield[], riskProfileObj: { [key: string]: {} }): ChainYield | null => {
     if (yields.length === 0) return null;
+    
+    const riskProfile = getRiskProfileString(riskProfileObj);
     
     switch (riskProfile) {
       case RiskProfile.Conservative:
@@ -306,7 +318,7 @@ export const useOmniVault = (): UseOmniVaultReturn => {
       default:
         return null;
     }
-  }, []);
+  }, [getRiskProfileString]);
 
   // Initialize vault store
   const initialize = useCallback(async (): Promise<string | null> => {
@@ -343,10 +355,10 @@ export const useOmniVault = (): UseOmniVaultReturn => {
 
     setIsCreatingVault(true);
     try {
+      // Note: targetChains parameter is currently not supported in the service
       const result = await service.createVault(
         riskProfile, 
-        minDeposit, 
-        targetChains || [CHAIN_IDS.ETHEREUM, CHAIN_IDS.ARBITRUM]
+        minDeposit
       );
       await refreshData();
       setError(null);
