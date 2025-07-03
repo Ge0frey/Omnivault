@@ -1,24 +1,23 @@
 [toolchain]
-package_manager = "yarn"
 anchor_version = "0.31.0"
+package_manager = "yarn"
 
 [features]
 resolution = true
 skip-lint = false
-seeds = false
-
-[programs.localnet]
-omnivault = "HAGPttZ592S5xv5TPrkVLPQpkNGrNPAw42kGjdR9vUc4"
 
 [programs.devnet]
-omnivault = "HAGPttZ592S5xv5TPrkVLPQpkNGrNPAw42kGjdR9vUc4"
+omnivault = "66bzWSC6dWFKdAZDcdj7wbjHZ6YWBHB4o77tbP3twVnd"
+
+[programs.localnet]
+omnivault = "66bzWSC6dWFKdAZDcdj7wbjHZ6YWBHB4o77tbP3twVnd"
 
 [registry]
 url = "https://api.apr.dev"
 
 [provider]
-cluster = "Localnet"
-wallet = "~/.config/solana/id.json"
+cluster = "localnet"
+wallet = "~/.config/solana/omnivault-keypair.json"
 
 [scripts]
 test = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/**/*.ts"
@@ -26,10 +25,11 @@ test = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/**/*.ts"
 [test]
 startup_wait = 5000
 shutdown_wait = 2000
+upgradeable = false
+skip_deploy = true
 
 [test.validator]
-url = "https://api.devnet.solana.com"
-
-# LayerZero endpoint - commented out for basic testing
-# [[test.validator.clone]]
-# address = "H3SKp4cL5rpzJDntDa2umKE9AHkGiyss1W8BNDndhHWp" # LayerZero Endpoint
+bind_address = "0.0.0.0"
+url = "https://api.localhost.solana.com"
+ledger = ".anchor/test-ledger"
+rpc_port = 8899
