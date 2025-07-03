@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { useConnection, useWallet } from '@solana/wallet-adapter-react';
+import { useConnection, useWallet, useAnchorWallet } from '@solana/wallet-adapter-react';
 import { AnchorProvider } from '@coral-xyz/anchor';
 import { PublicKey } from '@solana/web3.js';
 import type { 
@@ -13,8 +13,9 @@ import type {
   DepositMadeEvent,
   YieldDataReceivedEvent,
   RebalanceTriggeredEvent,
+  RiskProfile,
+  CHAIN_IDS
 } from '../services/omnivault';
-import { RiskProfile } from '../services/omnivault';
 import { createOmniVaultService } from '../services/omnivault';
 
 export interface UseOmniVaultReturn {
@@ -72,6 +73,7 @@ export interface UseOmniVaultReturn {
 export const useOmniVault = (): UseOmniVaultReturn => {
   const { connection } = useConnection();
   const { wallet, publicKey, connected } = useWallet();
+  const anchorWallet = useAnchorWallet();
   
   // Service instance
   const [service, setService] = useState<OmniVaultService | null>(null);
@@ -109,7 +111,7 @@ export const useOmniVault = (): UseOmniVaultReturn => {
 
   // Initialize service when wallet connects
   useEffect(() => {
-    if (connected && wallet && publicKey) {
+    if (connected && anchorWallet && connection) {
       try {
         // Cleanup previous service
         if (serviceRef.current) {
@@ -118,8 +120,11 @@ export const useOmniVault = (): UseOmniVaultReturn => {
         
         const provider = new AnchorProvider(
           connection,
-          wallet.adapter as any,
-          AnchorProvider.defaultOptions()
+          anchorWallet,
+          {
+            commitment: 'confirmed',
+            preflightCommitment: 'confirmed'
+          }
         );
         
         const omniVaultService = createOmniVaultService(provider);
@@ -150,7 +155,7 @@ export const useOmniVault = (): UseOmniVaultReturn => {
       setBestChain(null);
       setRecentEvents([]);
     }
-  }, [connected, wallet, publicKey, connection]);
+  }, [connected, anchorWallet, connection]);
 
   // Setup real-time event listeners
   const setupEventListeners = useCallback((service: OmniVaultService) => {
