@@ -1,12 +1,15 @@
-import { Connection, PublicKey, SystemProgram } from '@solana/web3.js';
+import { Connection, PublicKey, SystemProgram, LAMPORTS_PER_SOL } from '@solana/web3.js';
 import { Program, AnchorProvider, BN } from '@coral-xyz/anchor';
-import { TOKEN_PROGRAM_ID, getAssociatedTokenAddress } from '@solana/spl-token';
+import { TOKEN_PROGRAM_ID, getAssociatedTokenAddress, createAssociatedTokenAccountInstruction, getAccount } from '@solana/spl-token';
 import type { Omnivault } from '../idl/omnivault';
 import omnivaultIdl from '../idl/omnivault.json';
 
 // Program ID from the IDL
 export const OMNIVAULT_PROGRAM_ID = new PublicKey(omnivaultIdl.address);
 export const LAYERZERO_ENDPOINT_ID = new PublicKey('H3SKp4cL5rpzJDntDa2umKE9AHkGiyss1W8BNDndhHWp');
+
+// Native SOL mint address
+export const NATIVE_SOL_MINT = new PublicKey('So11111111111111111111111111111111111111112');
 
 // Chain IDs for cross-chain operations
 export const CHAIN_IDS = {
@@ -237,6 +240,71 @@ export class OmniVaultService {
     }
   }
 
+  // Deposit SOL into a vault
+  async depositSol(vaultId: number, amount: number): Promise<string> {
+    const user = this.provider.wallet.publicKey;
+    
+    if (!user) {
+      throw new Error('Wallet not connected');
+    }
+
+    const vaultOwner = user; // For simplicity, assuming user owns the vault
+    
+    const [vault] = this.getVaultPDA(vaultOwner, vaultId);
+    const [userPosition] = this.getUserPositionPDA(user, vault);
+    const [vaultStore] = this.getVaultStorePDA();
+
+    try {
+      const tx = await this.program.methods
+        .depositSol(new BN(amount))
+        .accountsPartial({
+          vault,
+          userPosition,
+          vaultStore,
+          user,
+          systemProgram: SystemProgram.programId,
+        })
+        .rpc();
+
+      return tx;
+    } catch (error) {
+      console.error('Error depositing SOL:', error);
+      throw error;
+    }
+  }
+
+  // Withdraw SOL from a vault
+  async withdrawSol(vaultId: number, amount: number): Promise<string> {
+    const user = this.provider.wallet.publicKey;
+    
+    if (!user) {
+      throw new Error('Wallet not connected');
+    }
+
+    const vaultOwner = user; // For simplicity, assuming user owns the vault
+    
+    const [vault] = this.getVaultPDA(vaultOwner, vaultId);
+    const [userPosition] = this.getUserPositionPDA(user, vault);
+    const [vaultStore] = this.getVaultStorePDA();
+
+    try {
+      const tx = await this.program.methods
+        .withdrawSol(new BN(amount))
+        .accountsPartial({
+          vault,
+          userPosition,
+          vaultStore,
+          user,
+        })
+        .rpc();
+
+      return tx;
+    } catch (error) {
+      console.error('Error withdrawing SOL:', error);
+      throw error;
+    }
+  }
+
   // Deposit tokens into a vault
   async deposit(vaultId: number, amount: number, mintAddress: PublicKey): Promise<string> {
     const user = this.provider.wallet.publicKey;
@@ -256,6 +324,22 @@ export class OmniVaultService {
     const vaultTokenAccount = await getAssociatedTokenAddress(mintAddress, vault, true);
 
     try {
+      // Check if vault token account exists, create if needed
+      const instructions = [];
+      try {
+        await getAccount(this.provider.connection, vaultTokenAccount);
+      } catch (error) {
+        // Account doesn't exist, create it
+        instructions.push(
+          createAssociatedTokenAccountInstruction(
+            user,
+            vaultTokenAccount,
+            vault,
+            mintAddress
+          )
+        );
+      }
+
       const tx = await this.program.methods
         .deposit(new BN(amount))
         .accountsPartial({
@@ -268,6 +352,7 @@ export class OmniVaultService {
           tokenProgram: TOKEN_PROGRAM_ID,
           systemProgram: SystemProgram.programId,
         })
+        .preInstructions(instructions)
         .rpc();
 
       return tx;
@@ -496,6 +581,15 @@ export class OmniVaultService {
       [CHAIN_IDS.OPTIMISM]: 'Optimism',
     };
     return chainNames[chainId] || `Chain ${chainId}`;
+  }
+
+  // Helper functions for amount conversion
+  solToLamports(sol: number): number {
+    return Math.floor(sol * LAMPORTS_PER_SOL);
+  }
+
+  lamportsToSol(lamports: number): number {
+    return lamports / LAMPORTS_PER_SOL;
   }
 
   // Event listeners for real-time updates
