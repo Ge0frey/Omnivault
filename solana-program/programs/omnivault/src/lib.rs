@@ -7,7 +7,7 @@ use anchor_lang::solana_program::{
 };
 use std::str::FromStr;
 
-declare_id!("HAGPttZ592S5xv5TPrkVLPQpkNGrNPAw42kGjdR9vUc4");
+declare_id!("66bzWSC6dWFKdAZDcdj7wbjHZ6YWBHB4o77tbP3twVnd");
 
 // LayerZero Endpoint Program ID (from Anchor.toml)
 const LAYERZERO_ENDPOINT: &str = "H3SKp4cL5rpzJDntDa2umKE9AHkGiyss1W8BNDndhHWp";
