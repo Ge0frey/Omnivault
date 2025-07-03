@@ -54,7 +54,9 @@ export const Deposit: React.FC = () => {
     isDepositing,
     error,
     clearError,
-    service
+    service,
+    refreshData,
+    loading
   } = useOmniVault();
 
   const [amount, setAmount] = useState<string>('');
@@ -62,6 +64,13 @@ export const Deposit: React.FC = () => {
   const [depositVault, setDepositVault] = useState<any>(null);
   const [showSuccess, setShowSuccess] = useState(false);
   const [lastTxHash, setLastTxHash] = useState<string>('');
+
+  // Refresh data when component mounts or wallet changes
+  useEffect(() => {
+    if (connected && publicKey) {
+      refreshData();
+    }
+  }, [connected, publicKey, refreshData]);
 
   useEffect(() => {
     if (userVaults.length > 0 && !depositVault) {
@@ -188,11 +197,28 @@ export const Deposit: React.FC = () => {
       <div className="card p-6">
         <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">Select Vault</h3>
         
-        {userVaults.length === 0 ? (
+        {loading ? (
+          <div className="text-center py-8">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto mb-4"></div>
+            <p className="text-gray-500 dark:text-gray-400">Loading your vaults...</p>
+          </div>
+        ) : userVaults.length === 0 ? (
           <div className="text-center py-8">
             <PlusIcon className="h-12 w-12 text-gray-400 mx-auto mb-4" />
             <p className="text-gray-500 dark:text-gray-400 mb-4">No vaults found</p>
-            <button className="btn btn-primary">Create Your First Vault</button>
+            <div className="space-y-2">
+              <button 
+                onClick={refreshData}
+                className="btn btn-secondary mb-2"
+                disabled={loading}
+              >
+                Refresh Vaults
+              </button>
+              <button className="btn btn-primary">Create Your First Vault</button>
+            </div>
+            <p className="text-xs text-gray-400 mt-4">
+              If you've created vaults but don't see them, try refreshing or check the browser console for errors.
+            </p>
           </div>
         ) : (
           <div className="space-y-3">
