@@ -1,7 +1,7 @@
 import { Connection, PublicKey, SystemProgram } from '@solana/web3.js';
 import { Program, AnchorProvider, BN } from '@coral-xyz/anchor';
 import { TOKEN_PROGRAM_ID, getAssociatedTokenAddress } from '@solana/spl-token';
-import { IDL } from '../idl/omnivault';
+import { IDL, OmnivaultIDL } from '../idl/omnivault';
 
 // Program ID from the IDL
 export const OMNIVAULT_PROGRAM_ID = new PublicKey('66bzWSC6dWFKdAZDcdj7wbjHZ6YWBHB4o77tbP3twVnd');
@@ -111,7 +111,7 @@ export interface RebalanceTriggeredEvent {
 }
 
 export class OmniVaultService {
-  private program: Program;
+  private program: Program<OmnivaultIDL>;
   private provider: AnchorProvider;
   private eventListeners: Map<string, number> = new Map();
 
@@ -176,10 +176,10 @@ export class OmniVaultService {
       const tx = await this.program.methods
         .initialize()
         .accounts({
-          vaultStore,
+          vault_store: vaultStore,
           authority,
-          systemProgram: SystemProgram.programId,
-        })
+          system_program: SystemProgram.programId,
+        } as any)
         .rpc();
 
       return tx;
@@ -215,18 +215,18 @@ export class OmniVaultService {
       const riskProfileIDL = { [riskProfile]: {} };
 
       const tx = await this.program.methods
-        .createVault(
+        .create_vault(
           riskProfileIDL, 
           new BN(minDeposit),
           targetChains
         )
         .accounts({
           vault,
-          yieldTracker,
-          vaultStore,
+          yield_tracker: yieldTracker,
+          vault_store: vaultStore,
           owner,
-          systemProgram: SystemProgram.programId,
-        })
+          system_program: SystemProgram.programId,
+        } as any)
         .rpc();
 
       return { tx, vaultId, vaultAddress: vault };
@@ -259,14 +259,14 @@ export class OmniVaultService {
         .deposit(new BN(amount))
         .accounts({
           vault,
-          userPosition,
-          vaultStore,
+          user_position: userPosition,
+          vault_store: vaultStore,
           user,
-          userTokenAccount,
-          vaultTokenAccount,
-          tokenProgram: TOKEN_PROGRAM_ID,
-          systemProgram: SystemProgram.programId,
-        })
+          user_token_account: userTokenAccount,
+          vault_token_account: vaultTokenAccount,
+          token_program: TOKEN_PROGRAM_ID,
+          system_program: SystemProgram.programId,
+        } as any)
         .rpc();
 
       return tx;
@@ -299,13 +299,13 @@ export class OmniVaultService {
         .withdraw(new BN(amount))
         .accounts({
           vault,
-          userPosition,
-          vaultStore,
+          user_position: userPosition,
+          vault_store: vaultStore,
           user,
-          userTokenAccount,
-          vaultTokenAccount,
-          tokenProgram: TOKEN_PROGRAM_ID,
-        })
+          user_token_account: userTokenAccount,
+          vault_token_account: vaultTokenAccount,
+          token_program: TOKEN_PROGRAM_ID,
+        } as any)
         .rpc();
 
       return tx;
@@ -332,15 +332,15 @@ export class OmniVaultService {
 
     try {
       const tx = await this.program.methods
-        .queryCrossChainYields(targetChains || [101, 110])
+        .query_cross_chain_yields(targetChains || [101, 110])
         .accounts({
           vault,
-          yieldTracker,
+          yield_tracker: yieldTracker,
           endpoint,
-          oappConfig,
+          oapp_config: oappConfig,
           payer: user,
-          systemProgram: SystemProgram.programId,
-        })
+          system_program: SystemProgram.programId,
+        } as any)
         .rpc();
 
       return tx;
@@ -363,12 +363,12 @@ export class OmniVaultService {
 
     try {
       const tx = await this.program.methods
-        .rebalanceVault(targetChain)
+        .rebalance_vault(targetChain)
         .accounts({
           vault,
-          vaultStore,
+          vault_store: vaultStore,
           authority: user,
-        })
+        } as any)
         .rpc();
 
       return tx;
@@ -396,14 +396,16 @@ export class OmniVaultService {
 
     try {
       const tx = await this.program.methods
-        .updateVaultConfig(
+        .update_vault_config(
           config.newMinDeposit ? new BN(config.newMinDeposit) : null,
-          config.newActiveStatus ?? null
+          config.newActiveStatus ?? null,
+          null, // rebalance_threshold
+          null  // target_chains
         )
         .accounts({
           vault,
           owner: user,
-        })
+        } as any)
         .rpc();
 
       return tx;
