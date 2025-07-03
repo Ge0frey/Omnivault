@@ -1,11 +1,9 @@
 use anchor_lang::prelude::*;
-use anchor_lang::solana_program;
 use anchor_spl::token::{self, Token, TokenAccount, Transfer};
 use anchor_lang::solana_program::{
     program::invoke_signed,
     sysvar::{rent::Rent, Sysvar, clock::Clock},
     instruction::{AccountMeta, Instruction},
-    system_instruction,
 };
 use std::str::FromStr;
 
@@ -245,9 +243,9 @@ pub mod omnivault {
         let message_data = query_message.try_to_vec()?;
         
         // Send to each target chain
-        for chain_id in target_chains {
+        for chain_id in &target_chains {
             let lz_instruction_data = LzSendData {
-                dst_chain_id: chain_id,
+                dst_chain_id: *chain_id,
                 message: message_data.clone(),
                 options: vec![], // Default options
             };
@@ -526,7 +524,7 @@ pub mod omnivault {
 }
 
 // Helper function to find the best chain based on risk profile
-fn find_best_chain(chain_yields: &[ChainYield], risk_profile: &RiskProfile) -> Option<&ChainYield> {
+fn find_best_chain<'a>(chain_yields: &'a [ChainYield], risk_profile: &RiskProfile) -> Option<&'a ChainYield> {
     if chain_yields.is_empty() {
         return None;
     }
@@ -642,9 +640,9 @@ pub struct QueryCrossChainYields<'info> {
     pub vault: Account<'info, Vault>,
     #[account(mut)]
     pub yield_tracker: Account<'info, YieldTracker>,
-    /// LayerZero Endpoint
+    /// CHECK: LayerZero Endpoint Program - verified against known program ID
     pub endpoint: AccountInfo<'info>,
-    /// OApp Configuration
+    /// CHECK: OApp Configuration account - managed by LayerZero
     pub oapp_config: AccountInfo<'info>,
     #[account(mut)]
     pub payer: Signer<'info>,
@@ -657,9 +655,9 @@ pub struct LzReceive<'info> {
     pub vault: Account<'info, Vault>,
     #[account(mut)]
     pub yield_tracker: Account<'info, YieldTracker>,
-    /// LayerZero Endpoint
+    /// CHECK: LayerZero Endpoint Program - verified against known program ID
     pub endpoint: AccountInfo<'info>,
-    /// OApp Configuration
+    /// CHECK: OApp Configuration account - managed by LayerZero
     pub oapp_config: AccountInfo<'info>,
     #[account(mut)]
     pub payer: Signer<'info>,
@@ -670,7 +668,9 @@ pub struct LzReceive<'info> {
 pub struct LzReceiveTypes<'info> {
     pub vault: Account<'info, Vault>,
     pub yield_tracker: Account<'info, YieldTracker>,
+    /// CHECK: LayerZero Endpoint Program - verified against known program ID
     pub endpoint: AccountInfo<'info>,
+    /// CHECK: OApp Configuration account - managed by LayerZero
     pub oapp_config: AccountInfo<'info>,
     pub payer: Signer<'info>,
 }
