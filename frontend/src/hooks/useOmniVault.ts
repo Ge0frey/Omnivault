@@ -209,17 +209,23 @@ export const useOmniVault = (): UseOmniVaultReturn => {
 
   // Refresh all data
   const refreshData = useCallback(async () => {
-    if (!service || !publicKey) return;
+    if (!service || !publicKey) {
+      console.log('Skipping refresh - no service or publicKey');
+      return;
+    }
     
+    console.log('Refreshing data for user:', publicKey.toBase58());
     setLoading(true);
     try {
       // Load vault store
       const vaultStoreData = await service.getVaultStore();
       setVaultStore(vaultStoreData);
+      console.log('Vault store loaded:', vaultStoreData);
       
       // Load user vaults
       const vaults = await service.getUserVaults(publicKey);
       setUserVaults(vaults);
+      console.log('User vaults loaded:', vaults.length, 'vaults');
       
       // If we have a selected vault, refresh its data
       if (selectedVault) {
