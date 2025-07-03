@@ -554,14 +554,29 @@ export class OmniVaultService {
   // Fetch all vaults for a user
   async getUserVaults(user: PublicKey): Promise<Vault[]> {
     try {
+      console.log('Fetching vaults for user:', user.toBase58());
+      
+      // Try to fetch all vaults first to see what's available
+      const allVaults = await this.program.account.vault.all();
+      console.log('Total vaults in the system:', allVaults.length);
+      
+      // In the Vault struct, the owner field is at:
+      // 8 bytes (discriminator) + 8 bytes (id) = offset 16
       const vaults = await this.program.account.vault.all([
         {
           memcmp: {
-            offset: 8, // Skip discriminator
+            offset: 16, // Skip discriminator (8) + id field (8)
             bytes: user.toBase58(),
           },
         },
       ]);
+      
+      console.log(`Found ${vaults.length} vaults for user ${user.toBase58()}`);
+      
+      // Debug: Log the first few vaults to see their structure
+      if (allVaults.length > 0) {
+        console.log('Sample vault structure:', allVaults[0]);
+      }
       
       return vaults.map((vault: any) => vault.account as Vault);
     } catch (error) {
