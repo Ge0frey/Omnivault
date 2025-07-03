@@ -30,5 +30,6 @@ shutdown_wait = 2000
 [test.validator]
 url = "https://api.devnet.solana.com"
 
-[[test.validator.clone]]
-address = "H3SKp4cL5rpzJDntDa2umKE9AHkGiyss1W8BNDndhHWp" # LayerZero Endpoint
+# LayerZero endpoint - commented out for basic testing
+# [[test.validator.clone]]
+# address = "H3SKp4cL5rpzJDntDa2umKE9AHkGiyss1W8BNDndhHWp" # LayerZero Endpoint
