@@ -36,6 +36,8 @@ try {
 export type OmnivaultIDL = ${JSON.stringify(idl, null, 2)};
 
 export const OmnivaultIDL: OmnivaultIDL = ${JSON.stringify(idl, null, 2)};
+
+export const IDL: OmnivaultIDL = OmnivaultIDL;
 `;
 
   // Create the output directory if it doesn't exist
