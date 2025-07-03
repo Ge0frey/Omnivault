@@ -10,7 +10,7 @@
 
 ## 🌟 Overview
 
-OmniVault is a groundbreaking cross-chain yield optimization platform that harnesses LayerZero V2's omnichain capabilities to maximize returns across multiple blockchain networks. Built on Solana for unparalleled performance and minimal costs, OmniVault intelligently rebalances user funds across the most profitable DeFi opportunities.
+OmniVault is a sophisticated DeFi platform that leverages LayerZero V2 technology to optimize yield farming across multiple blockchain networks. By automatically monitoring yield opportunities across chains and rebalancing user funds, OmniVault maximizes returns while minimizing risk.
 
 ### 🎯 **Hackathon Submission**: LayerZero Solana Breakout Bounty
 
@@ -22,11 +22,11 @@ OmniVault is a groundbreaking cross-chain yield optimization platform that harne
 ## ✨ Features
 
 ### 🔥 Core Functionality
-- **🌐 Cross-Chain Yield Optimization**: Automatically discover and capture the best yield opportunities across multiple chains
-- **⚡ LayerZero V2 Integration**: Seamless cross-chain messaging and asset transfers using cutting-edge omnichain technology
-- **🛡️ Risk Management**: Multiple risk profiles (Conservative, Moderate, Aggressive) tailored to user preferences
-- **🔄 Real-time Rebalancing**: Automated portfolio rebalancing based on live market conditions
-- **📊 Transparent Analytics**: Comprehensive dashboard with performance metrics and historical data
+- **🌐 Cross-Chain Yield Optimization**: Automatically find and capitalize on the best yield opportunities across supported chains
+- **⚡ LayerZero V2 Integration**: Secure, trust-minimized cross-chain messaging
+- **🛡️ Risk Management**: Risk-Based Vault Management, choose from Conservative, Moderate, or Aggressive risk profiles
+- **🔄 Real-time Rebalancing**: Automated fund movement to highest-yielding protocols
+- **📊 Transparent Analytics**: Cross-chain analytics dashboard
 
 ### 🛠️ Technical Features
 - **🏗️ Solana Program**: High-performance smart contracts built with Anchor framework
@@ -350,14 +350,12 @@ OmniVault leverages LayerZero V2's revolutionary omnichain technology:
 - **🔒 Security**: Immutable, censorship-resistant protocol with decentralized verification
 
 ### 🌍 Supported Chains
-- **Ethereum** (ETH)
-- **Arbitrum** (ARB)
-- **Polygon** (MATIC)
-- **Optimism** (OP)
-- **Base** (BASE)
-- **Avalanche** (AVAX)
-- **BNB Smart Chain** (BSC)
-- **And many more...**
+- **Ethereum** (Chain ID: 101)
+- **Arbitrum** (Chain ID: 110)
+- **Polygon** (Chain ID: 109)
+- **BSC** (Chain ID: 102)
+- **Avalanche** (Chain ID: 106)
+- **Optimism** (Chain ID: 111)
 
 ### 🔗 Cross-Chain Actions
 ```rust
