@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { WalletMultiButton } from '@solana/wallet-adapter-react-ui';
+import { useNavigate } from 'react-router-dom';
 import { useOmniVault } from '../hooks/useOmniVault';
 import { RiskProfile } from '../services/omnivault';
 import { TransactionSuccess } from '../components/TransactionSuccess';
@@ -18,6 +19,7 @@ import {
 
 export const Dashboard = () => {
   const { connected } = useWallet();
+  const navigate = useNavigate();
   const {
     vaultStore,
     userVaults,
@@ -77,6 +79,14 @@ export const Dashboard = () => {
         description: `Your ${selectedRiskProfile.toLowerCase()} risk profile vault (ID: ${result.vaultId}) has been created and is ready for deposits.`
       });
     }
+  };
+
+  const handleDeposit = () => {
+    navigate('/deposit');
+  };
+
+  const handleWithdraw = () => {
+    navigate('/withdraw');
   };
 
   const getRiskProfileBadgeColor = (risk: RiskProfile) => {
@@ -475,10 +485,16 @@ export const Dashboard = () => {
                 </div>
                 
                 <div className="grid grid-cols-2 gap-3 sm:gap-4">
-                  <button className="btn btn-primary">
+                  <button 
+                    className="btn btn-primary"
+                    onClick={handleDeposit}
+                  >
                     Deposit
                   </button>
-                  <button className="btn btn-secondary">
+                  <button 
+                    className="btn btn-secondary"
+                    onClick={handleWithdraw}
+                  >
                     Withdraw
                   </button>
                 </div>
