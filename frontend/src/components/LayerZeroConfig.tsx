@@ -9,7 +9,7 @@ import {
   XMarkIcon
 } from '@heroicons/react/24/outline';
 import { useOmniVault } from '../hooks/useOmniVault';
-import { CHAIN_IDS } from '../services/layerzero';
+import { CHAIN_IDS } from '../services/layerzero-official';
 
 interface ChainPeerConfig {
   chainId: number;

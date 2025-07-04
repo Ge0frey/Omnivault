@@ -16,7 +16,7 @@ import type {
 } from '../services/omnivault';
 import { RiskProfile } from '../services/omnivault';
 import { createOmniVaultService } from '../services/omnivault';
-import type { CrossChainMessage } from '../services/layerzero';
+import type { CrossChainMessage } from '../services/layerzero-official';
 
 export interface UseOmniVaultReturn {
   // Service instance

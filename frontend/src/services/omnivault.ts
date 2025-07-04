@@ -3,10 +3,10 @@ import { Program, AnchorProvider, BN } from '@coral-xyz/anchor';
 import { TOKEN_PROGRAM_ID, getAssociatedTokenAddress, createAssociatedTokenAccountInstruction, getAccount } from '@solana/spl-token';
 import type { Omnivault } from '../idl/omnivault';
 import omnivaultIdl from '../idl/omnivault.json';
-import LayerZeroService, { 
+import OfficialLayerZeroService, { 
   CrossChainActionType,
   type CrossChainMessage
-} from './layerzero';
+} from './layerzero-official';
 
 // Program ID from the IDL
 export const OMNIVAULT_PROGRAM_ID = new PublicKey(omnivaultIdl.address);
@@ -122,7 +122,7 @@ export class OmniVaultService {
   private program: Program<Omnivault>;
   public provider: AnchorProvider; // Make provider public for airdrop functionality
   private eventListeners: Map<string, number> = new Map();
-  private layerzeroService: LayerZeroService | null = null;
+  private layerzeroService: OfficialLayerZeroService | null = null;
 
   constructor(provider: AnchorProvider) {
     this.provider = provider;
@@ -153,7 +153,7 @@ export class OmniVaultService {
         oappConfig.peers.set(chainId, placeholderPeer);
       });
 
-      this.layerzeroService = new LayerZeroService(this.provider, oappConfig);
+      this.layerzeroService = new OfficialLayerZeroService(this.provider, oappConfig);
     } catch (error) {
       console.error('Failed to initialize LayerZero service:', error);
     }
@@ -748,7 +748,7 @@ export class OmniVaultService {
   }
 
   // Get LayerZero service instance
-  getLayerZeroService(): LayerZeroService | null {
+  getLayerZeroService(): OfficialLayerZeroService | null {
     return this.layerzeroService;
   }
 

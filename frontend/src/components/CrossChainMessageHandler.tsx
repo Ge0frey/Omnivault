@@ -10,12 +10,12 @@ import {
   EyeIcon,
   EyeSlashIcon
 } from '@heroicons/react/24/outline';
-import LayerZeroService, { 
+import OfficialLayerZeroService, { 
   CrossChainActionType,
   CHAIN_IDS,
   type CrossChainMessage,
   type OAppConfig 
-} from '../services/layerzero';
+} from '../services/layerzero-official';
 
 interface CrossChainEvent {
   id: string;
@@ -41,7 +41,7 @@ export const CrossChainMessageHandler: React.FC<CrossChainMessageHandlerProps> =
 }) => {
   const { connection } = useConnection();
   const { publicKey, wallet } = useWallet();
-  const [layerzeroService, setLayerzeroService] = useState<LayerZeroService | null>(null);
+  const [layerzeroService, setLayerzeroService] = useState<OfficialLayerZeroService | null>(null);
   const [events, setEvents] = useState<CrossChainEvent[]>([]);
   const [isListening, setIsListening] = useState(false);
   const [showNotifications, setShowNotifications] = useState(true);
@@ -81,7 +81,7 @@ export const CrossChainMessageHandler: React.FC<CrossChainMessageHandlerProps> =
           }
         } as unknown as import('@coral-xyz/anchor').AnchorProvider;
 
-        const service = new LayerZeroService(provider, oappConfig);
+        const service = new OfficialLayerZeroService(provider, oappConfig);
         setLayerzeroService(service);
 
         // Start listening for messages
@@ -100,7 +100,7 @@ export const CrossChainMessageHandler: React.FC<CrossChainMessageHandlerProps> =
   }, [publicKey, wallet, connection]);
 
   // Start listening for cross-chain messages
-  const startListening = useCallback((service: LayerZeroService) => {
+  const startListening = useCallback((service: OfficialLayerZeroService) => {
     if (isListening) return;
 
     setIsListening(true);
