@@ -5,11 +5,17 @@ import {
   CurrencyDollarIcon, 
   ArrowUpIcon, 
   ExclamationTriangleIcon,
-  InformationCircleIcon
+  InformationCircleIcon,
+  CheckCircleIcon,
+  MinusCircleIcon,
+  ShieldCheckIcon,
+  ClockIcon,
+  CalculatorIcon
 } from '@heroicons/react/24/outline';
 import { useOmniVault } from '../hooks/useOmniVault';
 import { RiskProfile, NATIVE_SOL_MINT } from '../services/omnivault';
 import { TransactionSuccess } from '../components/TransactionSuccess';
+import { WalletMultiButton } from '@solana/wallet-adapter-react-ui';
 
 interface TokenOption {
   address: string;
@@ -43,503 +49,527 @@ const SUPPORTED_TOKENS: TokenOption[] = [
   },
 ];
 
-export const Withdraw: React.FC = () => {
-  const { connected, publicKey } = useWallet();
-  const {
-    userVaults,
+export const Withdraw = () => {
+  const { connected } = useWallet();
+  const { 
+    userVaults, 
+    userPosition,
+    loading,
     withdrawSol,
-    withdraw,
-    isWithdrawing,
     error,
-    clearError,
-    service,
-    vaultStore,
-    refreshData,
-    loading
+    clearError
   } = useOmniVault();
-
-  const [amount, setAmount] = useState<string>('');
-  const [selectedToken, setSelectedToken] = useState<TokenOption>(SUPPORTED_TOKENS[0]);
-  const [withdrawVault, setWithdrawVault] = useState<any>(null);
-  const [userPosition, setUserPosition] = useState<any>(null);
+  
+  const [amount, setAmount] = useState('');
+  const [selectedVaultForWithdraw, setSelectedVaultForWithdraw] = useState<any>(null);
+  const [withdrawType, setWithdrawType] = useState<'partial' | 'full'>('partial');
   const [successTransaction, setSuccessTransaction] = useState<{
     signature: string;
     title: string;
     description: string;
   } | null>(null);
-  const [showConfirmation, setShowConfirmation] = useState(false);
-
-  // Refresh data when component mounts or wallet changes
-  useEffect(() => {
-    if (connected && publicKey) {
-      refreshData();
-    }
-  }, [connected, publicKey, refreshData]);
-
-  useEffect(() => {
-    if (userVaults.length > 0 && !withdrawVault) {
-      setWithdrawVault(userVaults[0]);
-    }
-  }, [userVaults, withdrawVault]);
-
-  useEffect(() => {
-    if (withdrawVault && publicKey && service) {
-      fetchUserPosition();
-    }
-  }, [withdrawVault, publicKey, service]);
-
-  useEffect(() => {
-    if (error) {
-      const timer = setTimeout(() => clearError(), 5000);
-      return () => clearTimeout(timer);
-    }
-  }, [error, clearError]);
-
-  const fetchUserPosition = async () => {
-    if (!withdrawVault || !publicKey || !service) return;
-    
-    try {
-      const position = await service.getUserPosition(publicKey, withdrawVault.publicKey);
-      setUserPosition(position);
-    } catch (err) {
-      console.error('Error fetching user position:', err);
-      setUserPosition(null);
-    }
-  };
 
   const handleWithdraw = async () => {
-    if (!withdrawVault || !amount || !userPosition || !isAmountValid()) return;
+    if (!selectedVaultForWithdraw || (!amount && withdrawType === 'partial')) return;
+    
+    const amountNum = withdrawType === 'full' 
+      ? getAvailableBalance(selectedVaultForWithdraw) 
+      : parseFloat(amount);
+    
+    if (amountNum <= 0 || amountNum > getAvailableBalance(selectedVaultForWithdraw)) return;
 
-    try {
-      clearError();
-      
-      const amountInLamports = selectedToken.symbol === 'SOL' 
-        ? service?.solToLamports(parseFloat(amount)) || 0
-        : Math.floor(parseFloat(amount) * Math.pow(10, selectedToken.decimals));
-
-      let txHash: string | null = null;
-      
-      if (selectedToken.symbol === 'SOL') {
-        txHash = await withdrawSol(withdrawVault, amountInLamports);
-      } else {
-        const mintAddress = new PublicKey(selectedToken.address);
-        txHash = await withdraw(withdrawVault, amountInLamports, mintAddress);
-      }
-
-      if (txHash) {
-        setSuccessTransaction({
-          signature: txHash,
-          title: "Withdrawal Successful!",
-          description: `Successfully withdrew ${getNetWithdrawal().toFixed(4)} ${selectedToken.symbol} from your vault.`
-        });
-        setAmount('');
-        setShowConfirmation(false);
-        
-        // Refresh user position
-        await fetchUserPosition();
-      }
-    } catch (err) {
-      console.error('Withdrawal failed:', err);
-      setShowConfirmation(false);
+    const tx = await withdrawSol(selectedVaultForWithdraw.id, amountNum);
+    if (tx) {
+      console.log('Withdrawal successful:', tx);
+      setAmount('');
+      setSuccessTransaction({
+        signature: tx,
+        title: "Withdrawal Successful!",
+        description: `Successfully withdrew ${amountNum.toFixed(4)} SOL from Vault #${selectedVaultForWithdraw.id.toString()}`
+      });
     }
   };
 
-  const getAvailableBalance = () => {
-    if (!userPosition) return 0;
-    return service?.lamportsToSol(userPosition.amount.toNumber()) || 0;
+  const getRiskProfileName = (riskProfile: any): string => {
+    if (typeof riskProfile === 'object' && riskProfile !== null) {
+      if ('conservative' in riskProfile) return 'Conservative';
+      if ('moderate' in riskProfile) return 'Moderate';
+      if ('aggressive' in riskProfile) return 'Aggressive';
+    }
+    return 'Unknown';
   };
 
-  const getWithdrawalFee = () => {
-    if (!amount || !vaultStore) return 0;
-    const amountValue = parseFloat(amount);
-    const feeRate = vaultStore.feeRate / 10000; // Convert from basis points
-    return amountValue * feeRate;
-  };
-
-  const getNetWithdrawal = () => {
-    if (!amount) return 0;
-    const amountValue = parseFloat(amount);
-    const fee = getWithdrawalFee();
-    return amountValue - fee;
-  };
-
-  const getRiskProfileColor = (vault: any) => {
-    const riskProfile = Object.keys(vault.riskProfile)[0] as RiskProfile;
-    switch (riskProfile) {
-      case RiskProfile.Conservative:
-        return 'bg-green-100 text-green-800 border-green-200';
-      case RiskProfile.Moderate:
-        return 'bg-yellow-100 text-yellow-800 border-yellow-200';
-      case RiskProfile.Aggressive:
-        return 'bg-red-100 text-red-800 border-red-200';
+  const getRiskProfileBadgeColor = (riskProfile: any) => {
+    const name = getRiskProfileName(riskProfile).toLowerCase();
+    switch (name) {
+      case 'conservative':
+        return 'bg-green-500/20 text-green-400 border-green-500/30';
+      case 'moderate':
+        return 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30';
+      case 'aggressive':
+        return 'bg-red-500/20 text-red-400 border-red-500/30';
       default:
-        return 'bg-gray-100 text-gray-800 border-gray-200';
+        return 'bg-blue-500/20 text-blue-400 border-blue-500/30';
     }
   };
 
-  const isAmountValid = () => {
-    if (!amount || !userPosition) return false;
-    const amountValue = parseFloat(amount);
-    const availableBalance = getAvailableBalance();
-    return amountValue > 0 && amountValue <= availableBalance;
+  const getAvailableBalance = (vault: any): number => {
+    // This would be the user's position in the vault
+    // For now, using vault's total deposits as placeholder
+    return vault.totalDeposits.toNumber() / 1e9;
   };
+
+  const getTotalYieldEarned = (vault: any): number => {
+    // This would be the yield earned by the user
+    // For now, using vault's total yield as placeholder
+    return vault.totalYield ? vault.totalYield.toNumber() / 1e9 : 0;
+  };
+
+  const calculateWithdrawFee = (amount: number): number => {
+    // Assuming 0.5% withdrawal fee
+    return amount * 0.005;
+  };
+
+  const calculateNetAmount = (amount: number): number => {
+    return amount - calculateWithdrawFee(amount);
+  };
+
+  const isFormValid = selectedVaultForWithdraw && 
+    (withdrawType === 'full' || (amount && parseFloat(amount) > 0 && parseFloat(amount) <= getAvailableBalance(selectedVaultForWithdraw)));
 
   if (!connected) {
     return (
-      <div className="max-w-2xl mx-auto p-6">
-        <div className="card p-8 text-center">
-          <CurrencyDollarIcon className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
+      <div className="min-h-screen flex items-center justify-center mobile-padding relative">
+        {/* Background Effects */}
+        <div className="absolute inset-0">
+          <div className="absolute top-20 left-10 w-48 h-48 sm:w-72 sm:h-72 bg-accent-500/5 rounded-full blur-3xl animate-pulse-slow"></div>
+          <div className="absolute bottom-20 right-20 w-56 h-56 sm:w-96 sm:h-96 bg-primary-500/5 rounded-full blur-3xl animate-pulse-slow" style={{ animationDelay: '2s' }}></div>
+        </div>
+        
+        <div className="relative text-center">
+          <div className="mx-auto h-24 w-24 sm:h-32 sm:w-32 rounded-2xl gradient-bg flex items-center justify-center mb-6 sm:mb-8 shadow-2xl">
+            <MinusCircleIcon className="h-12 w-12 sm:h-16 sm:w-16 text-white" />
+          </div>
+          <h2 className="text-2xl sm:text-3xl font-bold text-white mb-3 sm:mb-4">
             Connect Your Wallet
-          </h3>
-          <p className="text-gray-500 dark:text-gray-400">
-            Please connect your wallet to withdraw from OmniVault.
+          </h2>
+          <p className="text-gray-300 mb-6 sm:mb-8 max-w-md text-base sm:text-lg font-light px-4">
+            Connect your Solana wallet to access your OmniVault portfolios and manage withdrawals.
           </p>
+          <div className="flex justify-center">
+            <WalletMultiButton />
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="max-w-2xl mx-auto p-6 space-y-6">
-      {/* Header */}
-      <div className="card p-6">
-        <div className="flex items-center mb-4">
-          <CurrencyDollarIcon className="h-6 w-6 text-primary-600 mr-2" />
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Withdraw Funds</h1>
-        </div>
-        <p className="text-gray-600 dark:text-gray-400">
-          Withdraw your deposited funds from OmniVault at any time. Withdrawal fees apply.
-        </p>
+    <div className="min-h-screen relative">
+      {/* Background Effects */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-10 left-10 w-48 h-48 sm:w-64 sm:h-64 bg-accent-500/5 rounded-full blur-3xl animate-pulse-slow"></div>
+        <div className="absolute bottom-20 right-10 w-56 h-56 sm:w-80 sm:h-80 bg-primary-500/5 rounded-full blur-3xl animate-pulse-slow" style={{ animationDelay: '3s' }}></div>
       </div>
 
-      {/* Success Message */}
-      {successTransaction && (
-        <TransactionSuccess
-          signature={successTransaction.signature}
-          title={successTransaction.title}
-          description={successTransaction.description}
-          onClose={() => setSuccessTransaction(null)}
-        />
-      )}
-
-      {/* Error Message */}
-      {error && (
-        <div className="card p-4 border border-red-200 bg-red-50 dark:bg-red-900/20">
-          <div className="flex items-center">
-            <ExclamationTriangleIcon className="h-5 w-5 text-red-600 mr-2" />
-            <p className="text-red-800 dark:text-red-200">{error}</p>
+      <div className="relative mx-auto max-w-6xl mobile-padding mobile-section">
+        {/* Header */}
+        <div className="mb-6 sm:mb-8">
+          <div className="flex items-center mb-3 sm:mb-4">
+            <ArrowUpIcon className="h-6 w-6 sm:h-8 sm:w-8 text-accent-500 mr-2 sm:mr-3" />
+            <h1 className="text-2xl sm:text-4xl font-bold text-white">Withdraw Funds</h1>
           </div>
+          <p className="text-gray-300 text-base sm:text-lg font-light">
+            Withdraw your earnings and principal from your OmniVault positions
+          </p>
         </div>
-      )}
 
-      {/* Fee Information */}
-      <div className="card p-4 border border-blue-200 bg-blue-50 dark:bg-blue-900/20">
-        <div className="flex items-start">
-          <InformationCircleIcon className="h-5 w-5 text-blue-600 mr-2 mt-0.5" />
-          <div>
-            <p className="text-blue-800 dark:text-blue-200 font-medium">Withdrawal Fee</p>
-            <p className="text-blue-600 dark:text-blue-300 text-sm">
-              A {vaultStore ? (vaultStore.feeRate / 100).toFixed(2) : '1.00'}% fee applies to all withdrawals to cover cross-chain operations.
-            </p>
-          </div>
-        </div>
-      </div>
-
-      {/* Vault Selection */}
-      <div className="card p-6">
-        <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">Select Vault</h3>
-        
-        {loading ? (
-          <div className="text-center py-8">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto mb-4"></div>
-            <p className="text-gray-500 dark:text-gray-400">Loading your vaults...</p>
-          </div>
-        ) : userVaults.length === 0 ? (
-          <div className="text-center py-8">
-            <CurrencyDollarIcon className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-            <p className="text-gray-500 dark:text-gray-400 mb-4">No vaults found</p>
-            <div className="space-y-2">
-              <button 
-                onClick={refreshData}
-                className="btn btn-secondary mb-2"
-                disabled={loading}
-              >
-                Refresh Vaults
-              </button>
-              <p className="text-sm text-gray-400">Create a vault and make deposits first</p>
-            </div>
-            <p className="text-xs text-gray-400 mt-4">
-              If you've created vaults but don't see them, try refreshing or check the browser console for errors.
-            </p>
-          </div>
-        ) : (
-          <div className="space-y-3">
-            {userVaults.map((vault) => (
-              <div
-                key={vault.id.toString()}
-                className={`p-4 border rounded-lg cursor-pointer transition-all ${
-                  withdrawVault?.id.toString() === vault.id.toString()
-                    ? 'border-primary-300 bg-primary-50 dark:bg-primary-900/20'
-                    : 'border-gray-200 dark:border-gray-700 hover:border-gray-300'
-                }`}
-                onClick={() => setWithdrawVault(vault)}
-              >
-                <div className="flex justify-between items-start">
-                  <div>
-                    <div className="flex items-center mb-2">
-                      <h4 className="font-medium text-gray-900 dark:text-white">
-                        Vault #{vault.id.toString()}
-                      </h4>
-                      <span className={`ml-2 px-2 py-1 text-xs font-medium rounded-full border ${getRiskProfileColor(vault)}`}>
-                        {Object.keys(vault.riskProfile)[0]}
-                      </span>
-                    </div>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">
-                      Current APY: {(vault.currentApy.toNumber() / 100).toFixed(2)}%
-                    </p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-sm font-medium text-gray-900 dark:text-white">
-                      {service?.lamportsToSol(vault.totalDeposits.toNumber()).toFixed(4)} SOL
-                    </p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">Total Deposits</p>
-                  </div>
-                </div>
+        {/* Error Display */}
+        {error && (
+          <div className="mb-4 sm:mb-6 card border-l-4 border-red-400 bg-red-500/10">
+            <div className="flex p-4 sm:p-6">
+              <ExclamationTriangleIcon className="h-5 w-5 sm:h-6 sm:w-6 text-red-400 flex-shrink-0" />
+              <div className="ml-3 sm:ml-4 flex-1">
+                <p className="text-red-300 font-medium text-sm sm:text-base">{error}</p>
               </div>
-            ))}
+              <button 
+                onClick={clearError}
+                className="text-red-400 hover:text-red-300 ml-2 sm:ml-4 touch-target"
+              >
+                ✕
+              </button>
+            </div>
           </div>
         )}
-      </div>
 
-      {/* User Position */}
-      {withdrawVault && (
-        <div className="card p-6">
-          <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">Your Position</h3>
-          
-          {userPosition ? (
-            <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">Available Balance</p>
-                  <p className="text-lg font-semibold text-gray-900 dark:text-white">
-                    {getAvailableBalance().toFixed(6)} SOL
-                  </p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">Last Deposit</p>
-                  <p className="text-sm text-gray-900 dark:text-white">
-                    {userPosition.lastDeposit.toNumber() > 0 
-                      ? new Date(userPosition.lastDeposit.toNumber() * 1000).toLocaleDateString()
-                      : 'Never'
-                    }
-                  </p>
-                </div>
-              </div>
-            </div>
-          ) : (
-            <div className="text-center py-8">
-              <ExclamationTriangleIcon className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-              <p className="text-gray-500 dark:text-gray-400">No position found in this vault</p>
-              <p className="text-sm text-gray-400">Make a deposit first to enable withdrawals</p>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Withdrawal Form */}
-      {withdrawVault && userPosition && getAvailableBalance() > 0 && (
-        <div className="card p-6">
-          <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">Withdrawal Amount</h3>
-          
-          {/* Token Selection */}
-          <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Select Token
-            </label>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              {SUPPORTED_TOKENS.map((token) => (
-                <button
-                  key={token.address}
-                  onClick={() => setSelectedToken(token)}
-                  className={`p-3 border rounded-lg text-left transition-all ${
-                    selectedToken.address === token.address
-                      ? 'border-primary-300 bg-primary-50 dark:bg-primary-900/20'
-                      : 'border-gray-200 dark:border-gray-700 hover:border-gray-300'
-                  }`}
-                >
-                  <div className="flex items-center">
-                    <span className="text-2xl mr-2">{token.icon}</span>
-                    <div>
-                      <div className="font-medium text-gray-900 dark:text-white">{token.symbol}</div>
-                      <div className="text-xs text-gray-500 dark:text-gray-400">{token.name}</div>
-                    </div>
-                  </div>
-                </button>
-              ))}
-            </div>
+        {/* Transaction Success */}
+        {successTransaction && (
+          <div className="mb-4 sm:mb-6">
+            <TransactionSuccess
+              signature={successTransaction.signature}
+              title={successTransaction.title}
+              description={successTransaction.description}
+              onClose={() => setSuccessTransaction(null)}
+            />
           </div>
+        )}
 
-          {/* Amount Input */}
-          <div className="mb-6">
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Amount ({selectedToken.symbol})
-            </label>
-            <div className="relative">
-              <input
-                type="number"
-                step="0.000001"
-                min="0"
-                max={getAvailableBalance()}
-                value={amount}
-                onChange={(e) => setAmount(e.target.value)}
-                className="input w-full pr-20"
-                placeholder={`Enter ${selectedToken.symbol} amount`}
-              />
-              <div className="absolute inset-y-0 right-0 flex items-center pr-3">
-                <span className="text-gray-500 dark:text-gray-400 text-sm font-medium">
-                  {selectedToken.symbol}
-                </span>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8">
+          {/* Vault Selection */}
+          <div className="card-elevated p-4 sm:p-6">
+            <h3 className="text-lg sm:text-xl font-bold text-white mb-4 sm:mb-6 flex items-center">
+              <ShieldCheckIcon className="h-5 w-5 sm:h-6 sm:w-6 mr-2 text-accent-500" />
+              Select Vault
+            </h3>
+            
+            {loading ? (
+              <div className="text-center py-8 sm:py-12">
+                <div className="animate-spin rounded-full h-8 w-8 sm:h-12 sm:w-12 border-b-2 border-primary-500 mx-auto mb-4"></div>
+                <p className="text-gray-400 text-sm sm:text-base">Loading vaults...</p>
               </div>
-            </div>
-            
-            {/* Balance info */}
-            <div className="flex justify-between items-center mt-2">
-              <p className="text-sm text-gray-600 dark:text-gray-400">
-                Available: {getAvailableBalance().toFixed(6)} SOL
-              </p>
-              <button
-                onClick={() => setAmount(getAvailableBalance().toString())}
-                className="text-sm text-primary-600 hover:text-primary-700 font-medium"
-              >
-                Max
-              </button>
-            </div>
-            
-            {/* Invalid amount warning */}
-            {amount && !isAmountValid() && (
-              <p className="mt-1 text-sm text-red-600 dark:text-red-400">
-                Amount exceeds available balance
-              </p>
-            )}
-          </div>
-
-          {/* Quick Amount Buttons */}
-          {selectedToken.symbol === 'SOL' && getAvailableBalance() > 0 && (
-            <div className="mb-6">
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Quick Amounts
-              </label>
-              <div className="grid grid-cols-4 gap-2">
-                {['25%', '50%', '75%', '100%'].map((percentage) => {
-                  const value = getAvailableBalance() * (parseInt(percentage) / 100);
+            ) : userVaults.length > 0 ? (
+              <div className="space-y-3 sm:space-y-4">
+                {userVaults.map((vault, index) => {
+                  const availableBalance = getAvailableBalance(vault);
+                  const yieldEarned = getTotalYieldEarned(vault);
+                  
                   return (
-                    <button
-                      key={percentage}
-                      onClick={() => setAmount(value.toString())}
-                      className="btn btn-secondary text-sm py-2"
+                    <div 
+                      key={index}
+                      className={`p-4 sm:p-5 rounded-xl border transition-all duration-300 cursor-pointer group ${
+                        selectedVaultForWithdraw?.id.eq(vault.id) 
+                          ? 'border-accent-500/50 bg-accent-500/5 shadow-lg shadow-accent-500/10' 
+                          : 'border-white/10 hover:border-white/20 hover:bg-white/2'
+                      }`}
+                      onClick={() => setSelectedVaultForWithdraw(vault)}
                     >
-                      {percentage}
-                    </button>
+                      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-3 gap-2">
+                        <div className="flex items-center">
+                          <CheckCircleIcon className={`h-4 w-4 sm:h-5 sm:w-5 mr-2 ${selectedVaultForWithdraw?.id.eq(vault.id) ? 'text-accent-500' : 'text-gray-500'}`} />
+                          <h4 className="font-semibold text-white text-sm sm:text-base">
+                            Vault #{vault.id.toString()}
+                          </h4>
+                        </div>
+                        <span className={`px-2 sm:px-3 py-1 rounded-full text-xs font-medium border self-start ${getRiskProfileBadgeColor(vault.riskProfile)}`}>
+                          {getRiskProfileName(vault.riskProfile)}
+                        </span>
+                      </div>
+                      
+                      <div className="grid grid-cols-2 gap-3 sm:gap-4 text-xs sm:text-sm mb-3">
+                        <div>
+                          <span className="text-gray-400">Available:</span>
+                          <div className="font-medium text-white">{availableBalance.toFixed(4)} SOL</div>
+                        </div>
+                        <div>
+                          <span className="text-gray-400">Yield Earned:</span>
+                          <div className="font-medium text-green-400">{yieldEarned.toFixed(4)} SOL</div>
+                        </div>
+                        <div>
+                          <span className="text-gray-400">Current APY:</span>
+                          <div className="font-medium text-green-400">{(vault.currentApy.toNumber() / 100).toFixed(2)}%</div>
+                        </div>
+                        <div>
+                          <span className="text-gray-400">Total Value:</span>
+                          <div className="font-medium text-accent-400">{(availableBalance + yieldEarned).toFixed(4)} SOL</div>
+                        </div>
+                      </div>
+                      
+                      <div className="text-xs sm:text-sm text-gray-400">
+                        Last rebalance: {new Date(vault.lastRebalance.toNumber() * 1000).toLocaleDateString()}
+                      </div>
+                    </div>
                   );
                 })}
               </div>
-            </div>
-          )}
-
-          {/* Withdrawal Summary */}
-          {amount && isAmountValid() && (
-            <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 mb-6">
-              <h4 className="font-medium text-gray-900 dark:text-white mb-3">Withdrawal Summary</h4>
-              <div className="space-y-2 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-gray-600 dark:text-gray-400">Withdrawal Amount:</span>
-                  <span className="text-gray-900 dark:text-white font-medium">
-                    {amount} {selectedToken.symbol}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600 dark:text-gray-400">Fee ({vaultStore ? (vaultStore.feeRate / 100).toFixed(2) : '1.00'}%):</span>
-                  <span className="text-red-600 dark:text-red-400">
-                    -{getWithdrawalFee().toFixed(6)} {selectedToken.symbol}
-                  </span>
-                </div>
-                <div className="flex justify-between font-medium border-t pt-2">
-                  <span className="text-gray-900 dark:text-white">Net Withdrawal:</span>
-                  <span className="text-green-600 dark:text-green-400">
-                    {getNetWithdrawal().toFixed(6)} {selectedToken.symbol}
-                  </span>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Withdraw Button */}
-          <button
-            onClick={() => setShowConfirmation(true)}
-            disabled={!isAmountValid() || isWithdrawing}
-            className="btn btn-primary w-full flex items-center justify-center"
-          >
-            {isWithdrawing ? (
-              <>
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                Processing...
-              </>
             ) : (
-              <>
-                <ArrowUpIcon className="h-4 w-4 mr-2" />
-                Withdraw {selectedToken.symbol}
-              </>
+              <div className="text-center py-8 sm:py-12">
+                <ShieldCheckIcon className="h-12 w-12 sm:h-16 sm:w-16 text-gray-500 mx-auto mb-4" />
+                <p className="text-gray-400 mb-4 sm:mb-6 text-base sm:text-lg">No vaults with funds</p>
+                <p className="text-gray-500 mb-4 sm:mb-6 text-sm sm:text-base px-4">
+                  You need to deposit funds into a vault before you can withdraw.
+                </p>
+                <button className="btn btn-accent w-full sm:w-auto">
+                  Make a Deposit
+                </button>
+              </div>
             )}
-          </button>
+          </div>
 
-          <p className="text-xs text-gray-500 dark:text-gray-400 text-center mt-3">
-            Withdrawals are subject to a fee to cover cross-chain optimization costs
-          </p>
-        </div>
-      )}
-
-      {/* Confirmation Modal */}
-      {showConfirmation && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-md w-full mx-4">
-            <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">
-              Confirm Withdrawal
+          {/* Withdrawal Form */}
+          <div className="card-elevated p-4 sm:p-6">
+            <h3 className="text-lg sm:text-xl font-bold text-white mb-4 sm:mb-6 flex items-center">
+              <MinusCircleIcon className="h-5 w-5 sm:h-6 sm:w-6 mr-2 text-accent-500" />
+              Withdraw Amount
             </h3>
-            
-            <div className="space-y-3 mb-6">
-              <div className="flex justify-between">
-                <span className="text-gray-600 dark:text-gray-400">Amount:</span>
-                <span className="font-medium">{amount} {selectedToken.symbol}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-600 dark:text-gray-400">Fee:</span>
-                <span className="text-red-600">-{getWithdrawalFee().toFixed(6)} {selectedToken.symbol}</span>
-              </div>
-              <div className="flex justify-between font-medium border-t pt-2">
-                <span>You will receive:</span>
-                <span className="text-green-600">{getNetWithdrawal().toFixed(6)} {selectedToken.symbol}</span>
-              </div>
-            </div>
 
-            <div className="flex space-x-3">
-              <button
-                onClick={() => setShowConfirmation(false)}
-                className="btn btn-secondary flex-1"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleWithdraw}
-                disabled={isWithdrawing}
-                className="btn btn-primary flex-1"
-              >
-                {isWithdrawing ? 'Processing...' : 'Confirm'}
-              </button>
+            {selectedVaultForWithdraw ? (
+              <div className="space-y-4 sm:space-y-6">
+                {/* Selected Vault Info */}
+                <div className="bg-accent-500/10 border border-accent-500/30 rounded-lg p-3 sm:p-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <h4 className="font-medium text-white text-sm sm:text-base">
+                      Vault #{selectedVaultForWithdraw.id.toString()}
+                    </h4>
+                    <span className={`px-2 py-1 rounded-full text-xs font-medium border ${getRiskProfileBadgeColor(selectedVaultForWithdraw.riskProfile)}`}>
+                      {getRiskProfileName(selectedVaultForWithdraw.riskProfile)}
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3 text-xs sm:text-sm">
+                    <div>
+                      <span className="text-gray-400">Available:</span>
+                      <div className="font-medium text-white">
+                        {getAvailableBalance(selectedVaultForWithdraw).toFixed(4)} SOL
+                      </div>
+                    </div>
+                    <div>
+                      <span className="text-gray-400">Yield Earned:</span>
+                      <div className="font-medium text-green-400">
+                        {getTotalYieldEarned(selectedVaultForWithdraw).toFixed(4)} SOL
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Withdrawal Type */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-3">
+                    Withdrawal Type
+                  </label>
+                  <div className="grid grid-cols-2 gap-3">
+                    <button
+                      onClick={() => {
+                        setWithdrawType('partial');
+                        setAmount('');
+                      }}
+                      className={`p-3 rounded-lg border transition-all ${
+                        withdrawType === 'partial'
+                          ? 'border-accent-500/50 bg-accent-500/10 text-accent-400'
+                          : 'border-white/10 hover:border-white/20 text-gray-300 hover:text-white'
+                      }`}
+                    >
+                      <div className="text-center">
+                        <CalculatorIcon className="h-5 w-5 mx-auto mb-1" />
+                        <div className="font-medium text-sm">Partial</div>
+                        <div className="text-xs opacity-75">Specify amount</div>
+                      </div>
+                    </button>
+                    <button
+                      onClick={() => {
+                        setWithdrawType('full');
+                        setAmount(getAvailableBalance(selectedVaultForWithdraw).toString());
+                      }}
+                      className={`p-3 rounded-lg border transition-all ${
+                        withdrawType === 'full'
+                          ? 'border-accent-500/50 bg-accent-500/10 text-accent-400'
+                          : 'border-white/10 hover:border-white/20 text-gray-300 hover:text-white'
+                      }`}
+                    >
+                      <div className="text-center">
+                        <ArrowUpIcon className="h-5 w-5 mx-auto mb-1" />
+                        <div className="font-medium text-sm">Full</div>
+                        <div className="text-xs opacity-75">Withdraw all</div>
+                      </div>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Amount Input */}
+                {withdrawType === 'partial' && (
+                  <div>
+                    <label htmlFor="amount" className="block text-sm font-medium text-gray-300 mb-2">
+                      Amount to Withdraw (SOL)
+                    </label>
+                    <div className="relative">
+                      <input
+                        type="number"
+                        id="amount"
+                        value={amount}
+                        onChange={(e) => setAmount(e.target.value)}
+                        placeholder="0.00"
+                        step="0.0001"
+                        min="0"
+                        max={getAvailableBalance(selectedVaultForWithdraw)}
+                        className="input w-full pr-16"
+                      />
+                      <button
+                        onClick={() => setAmount(getAvailableBalance(selectedVaultForWithdraw).toString())}
+                        className="absolute right-2 top-1/2 transform -translate-y-1/2 text-xs text-accent-400 hover:text-accent-300 bg-accent-500/20 px-2 py-1 rounded font-medium transition-colors"
+                      >
+                        MAX
+                      </button>
+                    </div>
+                    <div className="mt-2 flex justify-between text-xs sm:text-sm">
+                      <span className="text-gray-400">
+                        Available: {getAvailableBalance(selectedVaultForWithdraw).toFixed(4)} SOL
+                      </span>
+                      {amount && (
+                        <span className="text-gray-400">
+                          ≈ ${(parseFloat(amount) * 150).toFixed(2)} USD
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Quick Amount Buttons for Partial */}
+                {withdrawType === 'partial' && (
+                  <div>
+                    <p className="text-sm text-gray-400 mb-2">Quick amounts:</p>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                      {['25%', '50%', '75%', '100%'].map((percentage) => {
+                        const availableBalance = getAvailableBalance(selectedVaultForWithdraw);
+                        const quickAmount = availableBalance * (parseInt(percentage) / 100);
+                        return (
+                          <button
+                            key={percentage}
+                            onClick={() => setAmount(quickAmount.toString())}
+                            className="btn btn-secondary text-xs px-2 py-1"
+                          >
+                            {percentage}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {/* Withdrawal Summary */}
+                {(amount || withdrawType === 'full') && (
+                  <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-3 sm:p-4">
+                    <h4 className="font-medium text-blue-300 mb-2 text-sm">Withdrawal Summary</h4>
+                    <div className="space-y-2 text-xs sm:text-sm">
+                      <div className="flex justify-between">
+                        <span className="text-blue-200">Amount:</span>
+                        <span className="text-white font-medium">
+                          {withdrawType === 'full' 
+                            ? getAvailableBalance(selectedVaultForWithdraw).toFixed(4) 
+                            : (amount || '0')} SOL
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-blue-200">Withdrawal Fee (0.5%):</span>
+                        <span className="text-red-400">
+                          -{calculateWithdrawFee(
+                            withdrawType === 'full' 
+                              ? getAvailableBalance(selectedVaultForWithdraw) 
+                              : parseFloat(amount || '0')
+                          ).toFixed(4)} SOL
+                        </span>
+                      </div>
+                      <div className="border-t border-blue-500/30 pt-2 flex justify-between">
+                        <span className="text-blue-200 font-medium">You'll receive:</span>
+                        <span className="text-green-400 font-bold">
+                          {calculateNetAmount(
+                            withdrawType === 'full' 
+                              ? getAvailableBalance(selectedVaultForWithdraw) 
+                              : parseFloat(amount || '0')
+                          ).toFixed(4)} SOL
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Important Info */}
+                <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-3 sm:p-4">
+                  <div className="flex items-start">
+                    <InformationCircleIcon className="h-5 w-5 text-yellow-400 flex-shrink-0 mt-0.5 mr-2" />
+                    <div>
+                      <h4 className="font-medium text-yellow-300 mb-1 text-sm">Important Information</h4>
+                      <ul className="text-xs sm:text-sm text-yellow-200 space-y-1">
+                        <li>• Withdrawals may take a few minutes to process</li>
+                        <li>• A 0.5% fee applies to cover cross-chain gas costs</li>
+                        <li>• Partial withdrawals keep your vault active</li>
+                        <li>• Full withdrawals will close your vault position</li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Withdraw Button */}
+                <button
+                  onClick={handleWithdraw}
+                  disabled={!isFormValid || loading}
+                  className="btn btn-accent w-full flex items-center justify-center text-base sm:text-lg"
+                >
+                  {loading ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                      Processing...
+                    </>
+                  ) : (
+                    <>
+                      <ArrowUpIcon className="h-5 w-5 mr-2" />
+                      {withdrawType === 'full' ? 'Withdraw All' : `Withdraw ${amount || '0'} SOL`}
+                    </>
+                  )}
+                </button>
+
+                {!isFormValid && (withdrawType === 'partial' && amount) && (
+                  <div className="text-center">
+                    <p className="text-xs sm:text-sm text-red-400">
+                      {parseFloat(amount) > getAvailableBalance(selectedVaultForWithdraw) 
+                        ? 'Amount exceeds available balance' 
+                        : parseFloat(amount) <= 0 
+                        ? 'Amount must be greater than 0' 
+                        : 'Please enter a valid amount'
+                      }
+                    </p>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="text-center py-8 sm:py-12">
+                <CheckCircleIcon className="h-12 w-12 sm:h-16 sm:w-16 text-gray-500 mx-auto mb-4" />
+                <p className="text-gray-400 text-base sm:text-lg">Select a vault to withdraw funds</p>
+                <p className="text-gray-500 text-sm sm:text-base px-4 mt-2">
+                  Choose one of your vaults from the left panel to start withdrawing
+                </p>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* How Withdrawals Work */}
+        <div className="mt-8 sm:mt-12 card-elevated p-6 sm:p-8">
+          <h3 className="text-xl sm:text-2xl font-bold text-white mb-4 sm:mb-6 flex items-center">
+            <ClockIcon className="h-6 w-6 sm:h-8 sm:w-8 mr-3 text-accent-500" />
+            How Withdrawals Work
+          </h3>
+          
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
+            <div className="text-center">
+              <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-xl bg-gradient-to-r from-accent-500 to-accent-400 flex items-center justify-center mx-auto mb-3 sm:mb-4">
+                <span className="text-white font-bold text-lg sm:text-xl">1</span>
+              </div>
+              <h4 className="font-semibold text-white mb-2 text-base sm:text-lg">Select & Confirm</h4>
+              <p className="text-gray-300 text-sm sm:text-base">
+                Choose your vault and specify the amount you want to withdraw.
+              </p>
+            </div>
+            
+            <div className="text-center">
+              <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-xl bg-gradient-to-r from-purple-500 to-purple-400 flex items-center justify-center mx-auto mb-3 sm:mb-4">
+                <span className="text-white font-bold text-lg sm:text-xl">2</span>
+              </div>
+              <h4 className="font-semibold text-white mb-2 text-base sm:text-lg">Cross-Chain Processing</h4>
+              <p className="text-gray-300 text-sm sm:text-base">
+                Our system retrieves your funds from active chains and consolidates them.
+              </p>
+            </div>
+            
+            <div className="text-center sm:col-span-2 lg:col-span-1">
+              <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-xl bg-gradient-to-r from-green-500 to-green-400 flex items-center justify-center mx-auto mb-3 sm:mb-4">
+                <span className="text-white font-bold text-lg sm:text-xl">3</span>
+              </div>
+              <h4 className="font-semibold text-white mb-2 text-base sm:text-lg">Receive Funds</h4>
+              <p className="text-gray-300 text-sm sm:text-base">
+                Funds are transferred to your wallet minus a small processing fee.
+              </p>
             </div>
           </div>
         </div>
-      )}
+      </div>
     </div>
   );
 };
