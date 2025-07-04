@@ -18,13 +18,20 @@ interface WalletProviderProps {
 }
 
 export const WalletProvider: FC<WalletProviderProps> = ({ children }) => {
-  // For development, use localhost where the test validator is running
   const endpoint = useMemo(() => {
-    // Check if we're in development mode
-    if (import.meta.env.DEV) {
+    // Check for custom RPC endpoint from environment variables
+    const customEndpoint = import.meta.env.VITE_SOLANA_RPC_ENDPOINT;
+    if (customEndpoint) {
+      return customEndpoint;
+    }
+    
+    // Check if we want to use local validator (only when explicitly set)
+    const useLocalValidator = import.meta.env.VITE_USE_LOCAL_VALIDATOR === 'true';
+    if (useLocalValidator) {
       return 'http://localhost:8899';
     }
-    // For production, use devnet
+    
+    // Default to devnet for both development and production
     return clusterApiUrl(WalletAdapterNetwork.Devnet);
   }, []);
 
