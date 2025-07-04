@@ -3,6 +3,10 @@ import { Program, AnchorProvider, BN } from '@coral-xyz/anchor';
 import { TOKEN_PROGRAM_ID, getAssociatedTokenAddress, createAssociatedTokenAccountInstruction, getAccount } from '@solana/spl-token';
 import type { Omnivault } from '../idl/omnivault';
 import omnivaultIdl from '../idl/omnivault.json';
+import LayerZeroService, { 
+  CrossChainActionType,
+  type CrossChainMessage
+} from './layerzero';
 
 // Program ID from the IDL
 export const OMNIVAULT_PROGRAM_ID = new PublicKey(omnivaultIdl.address);
@@ -118,10 +122,41 @@ export class OmniVaultService {
   private program: Program<Omnivault>;
   public provider: AnchorProvider; // Make provider public for airdrop functionality
   private eventListeners: Map<string, number> = new Map();
+  private layerzeroService: LayerZeroService | null = null;
 
   constructor(provider: AnchorProvider) {
     this.provider = provider;
     this.program = new Program(omnivaultIdl as Omnivault, provider);
+    this.initializeLayerZero();
+  }
+
+  // Initialize LayerZero service
+  private async initializeLayerZero() {
+    try {
+      if (!this.provider.publicKey) return;
+
+      // Create OApp configuration for LayerZero
+      const oappConfig = {
+        endpoint: new PublicKey("LZ1ZeTMZZnKWEcG2ukQpvJE2QnLEyV5uYPVfPjTvZmV"),
+        defaultGasLimit: 200000,
+        defaultMsgValue: 2000000, // 0.002 SOL minimum for Solana
+        owner: this.provider.publicKey,
+        peers: new Map(),
+        trusted: true
+      };
+
+      // Initialize peers for supported chains (these would be configured via setPeer)
+      const supportedChains = [101, 110, 109, 102, 106, 111]; // Chain IDs from smart contract
+      supportedChains.forEach(chainId => {
+        // Placeholder peer addresses - these should be set through proper LayerZero configuration
+        const placeholderPeer = new PublicKey("11111111111111111111111111111111");
+        oappConfig.peers.set(chainId, placeholderPeer);
+      });
+
+      this.layerzeroService = new LayerZeroService(this.provider, oappConfig);
+    } catch (error) {
+      console.error('Failed to initialize LayerZero service:', error);
+    }
   }
 
   // Utility function to get vault store PDA
@@ -415,7 +450,7 @@ export class OmniVaultService {
     }
   }
 
-  // Query cross-chain yields for optimization
+  // Query cross-chain yields for optimization with proper LayerZero integration
   async queryCrossChainYields(vaultId: number, targetChains?: number[]): Promise<string> {
     const user = this.provider.wallet.publicKey;
     
@@ -423,16 +458,59 @@ export class OmniVaultService {
       throw new Error('Wallet not connected');
     }
 
+    if (!this.layerzeroService) {
+      throw new Error('LayerZero service not initialized');
+    }
+
     const [vault] = this.getVaultPDA(user, vaultId);
     const [yieldTracker] = this.getYieldTrackerPDA(vault);
     
-    // LayerZero specific accounts (these would need to be configured)
-    const endpoint = LAYERZERO_ENDPOINT_ID;
-    const oappConfig = vault; // Simplified - in practice this would be a separate account
+    // Use proper LayerZero OApp configuration
+    const [oappConfig] = this.layerzeroService.getOAppConfigPDA(user);
+    const endpoint = new PublicKey("LZ1ZeTMZZnKWEcG2ukQpvJE2QnLEyV5uYPVfPjTvZmV");
+
+    const chains = targetChains || [101, 110, 109, 102]; // Default chains
 
     try {
+      // Estimate LayerZero fees for all target chains
+      let totalFees = 0;
+      for (const chainId of chains) {
+        const queryMessage: CrossChainMessage = {
+          action: {
+            type: CrossChainActionType.YieldQuery,
+            vaultId,
+            data: {
+              riskProfile: 'moderate', // This would come from vault data
+              queryNonce: Date.now(),
+              requestedChains: chains
+            }
+          },
+          timestamp: Date.now(),
+          nonce: Date.now()
+        };
+
+        const serializedMessage = Buffer.from(JSON.stringify(queryMessage));
+        const fees = await this.layerzeroService.estimateFees(
+          chainId,
+          serializedMessage.length,
+          false // Pay in native SOL
+        );
+        totalFees += fees.nativeFee;
+      }
+
+      console.log(`Estimated LayerZero fees: ${totalFees / LAMPORTS_PER_SOL} SOL`);
+
+      // Check user has enough SOL for fees
+      const userBalance = await this.getUserSolBalance(user);
+      const requiredBalance = totalFees / LAMPORTS_PER_SOL;
+      
+      if (userBalance < requiredBalance) {
+        throw new Error(`Insufficient SOL balance. Need ${requiredBalance.toFixed(4)} SOL for cross-chain queries`);
+      }
+
+      // Execute the cross-chain yield query
       const tx = await this.program.methods
-        .queryCrossChainYields(targetChains || [101, 110])
+        .queryCrossChainYields(chains)
         .accountsPartial({
           vault,
           yieldTracker,
@@ -442,6 +520,41 @@ export class OmniVaultService {
           systemProgram: SystemProgram.programId,
         })
         .rpc();
+
+      // Send LayerZero messages to each target chain
+      for (const chainId of chains) {
+        try {
+          const queryMessage: CrossChainMessage = {
+            action: {
+              type: CrossChainActionType.YieldQuery,
+              vaultId,
+              data: {
+                riskProfile: 'moderate',
+                queryNonce: Date.now(),
+                requestedChains: [chainId]
+              }
+            },
+            timestamp: Date.now(),
+            nonce: Date.now()
+          };
+
+          // Create LayerZero options with proper gas settings
+          const options = this.layerzeroService.createLzOptions(chainId);
+          
+          // Send the message
+          await this.layerzeroService.sendMessage(
+            chainId,
+            queryMessage,
+            options,
+            false // Pay in native SOL
+          );
+
+          console.log(`Sent yield query to chain ${chainId}`);
+        } catch (error) {
+          console.warn(`Failed to send yield query to chain ${chainId}:`, error);
+          // Continue with other chains even if one fails
+        }
+      }
 
       return tx;
     } catch (error) {
@@ -476,6 +589,167 @@ export class OmniVaultService {
       console.error('Error rebalancing vault:', error);
       throw error;
     }
+  }
+
+  // Handle LayerZero lz_receive for incoming cross-chain messages
+  async handleLzReceive(
+    srcChainId: number,
+    payload: Uint8Array,
+    vaultId: number
+  ): Promise<string> {
+    const user = this.provider.wallet.publicKey;
+    
+    if (!user) {
+      throw new Error('Wallet not connected');
+    }
+
+    if (!this.layerzeroService) {
+      throw new Error('LayerZero service not initialized');
+    }
+
+    const [vault] = this.getVaultPDA(user, vaultId);
+    const [yieldTracker] = this.getYieldTrackerPDA(vault);
+    const [oappConfig] = this.layerzeroService.getOAppConfigPDA(user);
+    const endpoint = new PublicKey("LZ1ZeTMZZnKWEcG2ukQpvJE2QnLEyV5uYPVfPjTvZmV");
+
+    try {
+      // First, call our LayerZero service to handle and verify the message
+      await this.layerzeroService.handleLzReceive(srcChainId, payload);
+
+      // Then execute the on-chain lz_receive instruction
+      const signature = await this.program.methods
+        .lzReceive(srcChainId, Buffer.from(payload))
+        .accountsPartial({
+          vault,
+          yieldTracker,
+          endpoint,
+          oappConfig,
+          payer: user,
+          systemProgram: SystemProgram.programId,
+        })
+        .rpc();
+
+      console.log(`Processed LayerZero message from chain ${srcChainId}`);
+      return signature;
+    } catch (error) {
+      console.error('Error handling LayerZero receive:', error);
+      throw error;
+    }
+  }
+
+  // Get LayerZero receive types for account resolution
+  async getLzReceiveTypes(
+    srcChainId: number,
+    vaultId: number
+  ): Promise<{ accounts: PublicKey[]; accountMetas: any[] }> {
+    const user = this.provider.wallet.publicKey;
+    
+    if (!user) {
+      throw new Error('Wallet not connected');
+    }
+
+    if (!this.layerzeroService) {
+      throw new Error('LayerZero service not initialized');
+    }
+
+    const [vault] = this.getVaultPDA(user, vaultId);
+    const [yieldTracker] = this.getYieldTrackerPDA(vault);
+    const [oappConfig] = this.layerzeroService.getOAppConfigPDA(user);
+    const endpoint = new PublicKey("LZ1ZeTMZZnKWEcG2ukQpvJE2QnLEyV5uYPVfPjTvZmV");
+
+    try {
+      // Execute the lz_receive_types instruction to get account requirements
+      await this.program.methods
+        .lzReceiveTypes(srcChainId)
+        .accountsPartial({
+          vault,
+          yieldTracker,
+          endpoint,
+          oappConfig,
+          payer: user,
+        })
+        .rpc();
+
+      // Return the required accounts for lz_receive
+      const accounts = [vault, yieldTracker, endpoint, oappConfig, user];
+      const accountMetas = accounts.map((pubkey, index) => ({
+        pubkey,
+        isWritable: index < 2, // vault and yieldTracker are writable
+        isSigner: index === 4   // only payer is signer
+      }));
+
+      return { accounts, accountMetas };
+    } catch (error) {
+      console.error('Error getting LayerZero receive types:', error);
+      throw error;
+    }
+  }
+
+  // Configure LayerZero peer for cross-chain communication
+  async configureLzPeer(dstChainId: number, peerAddress: string): Promise<string> {
+    if (!this.layerzeroService) {
+      throw new Error('LayerZero service not initialized');
+    }
+
+    try {
+      const peerPubkey = new PublicKey(peerAddress);
+      const tx = await this.layerzeroService.setPeer(dstChainId, peerPubkey);
+      console.log(`Configured LayerZero peer for chain ${dstChainId}: ${peerAddress}`);
+      return tx;
+    } catch (error) {
+      console.error('Error configuring LayerZero peer:', error);
+      throw error;
+    }
+  }
+
+  // Check if LayerZero peer is configured
+  isLzPeerConfigured(chainId: number, peerAddress: string): boolean {
+    if (!this.layerzeroService) {
+      return false;
+    }
+
+    try {
+      const peerPubkey = new PublicKey(peerAddress);
+      return this.layerzeroService.isPeer(chainId, peerPubkey);
+    } catch (error) {
+      console.error('Error checking LayerZero peer:', error);
+      return false;
+    }
+  }
+
+  // Estimate LayerZero fees for cross-chain operations
+  async estimateLzFees(
+    dstChainId: number,
+    messageSize: number,
+    payInLzToken: boolean = false
+  ): Promise<{ nativeFee: number; lzTokenFee: number }> {
+    if (!this.layerzeroService) {
+      throw new Error('LayerZero service not initialized');
+    }
+
+    try {
+      return await this.layerzeroService.estimateFees(dstChainId, messageSize, payInLzToken);
+    } catch (error) {
+      console.error('Error estimating LayerZero fees:', error);
+      throw error;
+    }
+  }
+
+  // Add cross-chain message listener
+  onCrossChainMessage(
+    chainId: number,
+    callback: (message: CrossChainMessage) => void
+  ): () => void {
+    if (!this.layerzeroService) {
+      throw new Error('LayerZero service not initialized');
+    }
+
+    return this.layerzeroService.onMessage(chainId, callback);
+  }
+
+  // Get LayerZero service instance
+  getLayerZeroService(): LayerZeroService | null {
+    return this.layerzeroService;
   }
 
   // Update vault configuration
@@ -766,6 +1040,11 @@ export class OmniVaultService {
   // Cleanup method
   cleanup(): void {
     this.removeAllEventListeners();
+    
+    // Cleanup LayerZero service
+    if (this.layerzeroService) {
+      this.layerzeroService.cleanup();
+    }
   }
 }
 
