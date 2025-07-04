@@ -23,9 +23,18 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <WalletProvider>
         <Router>
-          <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+          <div className="min-h-screen relative">
+            {/* Global background effects */}
+            <div className="fixed inset-0 gradient-bg"></div>
+            <div className="fixed inset-0 pointer-events-none">
+              <div className="absolute top-10 left-10 w-96 h-96 bg-accent-500/5 rounded-full blur-3xl animate-pulse-slow"></div>
+              <div className="absolute top-1/3 right-10 w-80 h-80 bg-primary-500/5 rounded-full blur-3xl animate-pulse-slow" style={{ animationDelay: '2s' }}></div>
+              <div className="absolute bottom-20 left-1/4 w-64 h-64 bg-secondary-500/5 rounded-full blur-3xl animate-pulse-slow" style={{ animationDelay: '4s' }}></div>
+            </div>
+            
             <Header />
-            <main>
+            
+            <main className="relative z-10">
               <Routes>
                 <Route path="/" element={<Landing />} />
                 <Route path="/dashboard" element={<Dashboard />} />
