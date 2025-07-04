@@ -146,9 +146,9 @@ export const Analytics = () => {
   }, [chainYields, userVaults, portfolioMetrics.totalInvested, getChainName]);
 
   const getRiskColor = (riskScore: number) => {
-    if (riskScore <= 30) return 'text-green-600 bg-green-100 dark:text-green-400 dark:bg-green-900';
-    if (riskScore <= 60) return 'text-yellow-600 bg-yellow-100 dark:text-yellow-400 dark:bg-yellow-900';
-    return 'text-red-600 bg-red-100 dark:text-red-400 dark:bg-red-900';
+    if (riskScore <= 30) return 'text-green-400 bg-green-500/20 border-green-500/30';
+    if (riskScore <= 60) return 'text-yellow-400 bg-yellow-500/20 border-yellow-500/30';
+    return 'text-red-400 bg-red-500/20 border-red-500/30';
   };
 
   const getRiskLabel = (riskScore: number) => {
@@ -203,31 +203,31 @@ export const Analytics = () => {
           icon = <ArrowUpIcon className="h-4 w-4" />;
           title = 'Deposit Made';
           description = `${(event.data.amount.toNumber() / 1e9).toFixed(4)} SOL deposited`;
-          color = 'text-green-600 bg-green-100 dark:bg-green-900';
+          color = 'text-green-400 bg-green-500/20 border-green-500/30';
           break;
         case 'WithdrawalMade':
           icon = <ArrowDownIcon className="h-4 w-4" />;
           title = 'Withdrawal Made';
           description = `${(event.data.amount.toNumber() / 1e9).toFixed(4)} SOL withdrawn`;
-          color = 'text-blue-600 bg-blue-100 dark:bg-blue-900';
+          color = 'text-blue-400 bg-blue-500/20 border-blue-500/30';
           break;
         case 'RebalanceTriggered':
           icon = <ArrowPathIcon className="h-4 w-4" />;
           title = 'Auto Rebalance';
           description = `Moved to ${getChainName(event.data.toChain)}`;
-          color = 'text-purple-600 bg-purple-100 dark:bg-purple-900';
+          color = 'text-purple-400 bg-purple-500/20 border-purple-500/30';
           break;
         case 'YieldDataReceived':
           icon = <ChartBarIcon className="h-4 w-4" />;
           title = 'Yield Update';
           description = `${getChainName(event.data.chainId)}: ${formatAPY(event.data.apy.toNumber() / 100)}`;
-          color = 'text-indigo-600 bg-indigo-100 dark:bg-indigo-900';
+          color = 'text-indigo-400 bg-indigo-500/20 border-indigo-500/30';
           break;
         default:
           icon = <InformationCircleIcon className="h-4 w-4" />;
           title = event.type;
           description = 'Activity detected';
-          color = 'text-gray-600 bg-gray-100 dark:bg-gray-900';
+          color = 'text-gray-400 bg-gray-500/20 border-gray-500/30';
       }
 
       return {
@@ -242,14 +242,20 @@ export const Analytics = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-8">
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen relative">
+      {/* Background Effects */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-10 left-10 w-64 h-64 bg-accent-500/5 rounded-full blur-3xl animate-pulse-slow"></div>
+        <div className="absolute bottom-20 right-10 w-80 h-80 bg-primary-500/5 rounded-full blur-3xl animate-pulse-slow" style={{ animationDelay: '3s' }}></div>
+      </div>
+
+      <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
         <div className="mb-8">
           <div className="flex justify-between items-center">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Analytics</h1>
-              <p className="mt-2 text-gray-600 dark:text-gray-300">
+              <h1 className="text-4xl font-bold text-white">Analytics</h1>
+              <p className="mt-2 text-gray-300 text-lg font-light">
                 Comprehensive portfolio analytics and performance insights
               </p>
             </div>
@@ -277,75 +283,75 @@ export const Analytics = () => {
 
         {/* Portfolio Overview */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <div className="card p-6">
+          <div className="stat-card">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Total Portfolio</p>
-                <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                <p className="text-sm font-medium text-gray-400">Total Portfolio</p>
+                <p className="text-2xl font-bold text-white">
                   {formatSOL(portfolioMetrics.currentValue)}
                 </p>
-                <p className="text-sm text-gray-600 dark:text-gray-300">
+                <p className="text-sm text-gray-300">
                   {formatCurrency(portfolioMetrics.currentValue)}
                 </p>
               </div>
-              <div className="p-3 bg-primary-100 dark:bg-primary-900 rounded-lg">
-                <CurrencyDollarIcon className="h-6 w-6 text-primary-600 dark:text-primary-400" />
+              <div className="p-3 bg-accent-500/20 rounded-xl">
+                <CurrencyDollarIcon className="h-6 w-6 text-accent-400" />
               </div>
             </div>
           </div>
 
-          <div className="card p-6">
+          <div className="stat-card">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Total Return</p>
-                <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                <p className="text-sm font-medium text-gray-400">Total Return</p>
+                <p className="text-2xl font-bold text-white">
                   {formatSOL(portfolioMetrics.totalReturn)}
                 </p>
                 <div className="flex items-center">
                   {getPerformanceIcon(portfolioMetrics.totalReturnPercent)}
                   <p className={`text-sm ml-1 ${
-                    portfolioMetrics.totalReturnPercent >= 0 ? 'text-green-600' : 'text-red-600'
+                    portfolioMetrics.totalReturnPercent >= 0 ? 'text-green-400' : 'text-red-400'
                   }`}>
                     {formatPercent(portfolioMetrics.totalReturnPercent)}
                   </p>
                 </div>
               </div>
-              <div className="p-3 bg-green-100 dark:bg-green-900 rounded-lg">
-                <ArrowTrendingUpIcon className="h-6 w-6 text-green-600 dark:text-green-400" />
+              <div className="p-3 bg-green-500/20 rounded-xl">
+                <ArrowTrendingUpIcon className="h-6 w-6 text-green-400" />
               </div>
             </div>
           </div>
 
-          <div className="card p-6">
+          <div className="stat-card">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Average APY</p>
-                <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                <p className="text-sm font-medium text-gray-400">Average APY</p>
+                <p className="text-2xl font-bold text-white">
                   {formatAPY(portfolioMetrics.avgAPY)}
                 </p>
-                <p className="text-sm text-gray-600 dark:text-gray-300">
+                <p className="text-sm text-gray-300">
                   Across {userVaults.length} vault{userVaults.length !== 1 ? 's' : ''}
                 </p>
               </div>
-              <div className="p-3 bg-yellow-100 dark:bg-yellow-900 rounded-lg">
-                <ChartBarIcon className="h-6 w-6 text-yellow-600 dark:text-yellow-400" />
+              <div className="p-3 bg-yellow-500/20 rounded-xl">
+                <ChartBarIcon className="h-6 w-6 text-yellow-400" />
               </div>
             </div>
           </div>
 
-          <div className="card p-6">
+          <div className="stat-card">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Risk Score</p>
-                <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                <p className="text-sm font-medium text-gray-400">Risk Score</p>
+                <p className="text-2xl font-bold text-white">
                   {portfolioMetrics.riskScore.toFixed(0)}/100
                 </p>
-                <p className={`text-sm px-2 py-1 rounded-full inline-flex ${getRiskColor(portfolioMetrics.riskScore)}`}>
+                <p className={`text-sm px-2 py-1 rounded-full inline-flex border ${getRiskColor(portfolioMetrics.riskScore)}`}>
                   {getRiskLabel(portfolioMetrics.riskScore)}
                 </p>
               </div>
-              <div className="p-3 bg-red-100 dark:bg-red-900 rounded-lg">
-                <ShieldCheckIcon className="h-6 w-6 text-red-600 dark:text-red-400" />
+              <div className="p-3 bg-red-500/20 rounded-xl">
+                <ShieldCheckIcon className="h-6 w-6 text-red-400" />
               </div>
             </div>
           </div>
@@ -354,9 +360,9 @@ export const Analytics = () => {
         {/* Chain Analytics */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
           {/* Chain Allocation */}
-          <div className="card p-6">
+          <div className="card-elevated p-6">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-medium text-gray-900 dark:text-white">Chain Allocation</h3>
+              <h3 className="text-lg font-medium text-white">Chain Allocation</h3>
               <select
                 value={selectedMetric}
                 onChange={(e) => setSelectedMetric(e.target.value as any)}
@@ -372,23 +378,23 @@ export const Analytics = () => {
               {chainAnalytics.map((chain) => (
                 <div key={chain.chainId} className="flex items-center justify-between">
                   <div className="flex items-center">
-                    <div className="w-3 h-3 rounded-full bg-primary-500 mr-3"></div>
+                    <div className="w-3 h-3 rounded-full bg-accent-500 mr-3"></div>
                     <div>
-                      <p className="font-medium text-gray-900 dark:text-white">{chain.name}</p>
-                      <p className="text-sm text-gray-500 dark:text-gray-400">
+                      <p className="font-medium text-white">{chain.name}</p>
+                      <p className="text-sm text-gray-400">
                         {chain.allocation.toFixed(1)}% allocation
                       </p>
                     </div>
                   </div>
                   <div className="text-right">
-                    <p className="font-medium text-gray-900 dark:text-white">
+                    <p className="font-medium text-white">
                       {selectedMetric === 'apy' && formatAPY(chain.apy)}
                       {selectedMetric === 'tvl' && `$${(chain.tvl / 1e6).toFixed(1)}M`}
                       {selectedMetric === 'risk' && `${chain.riskScore}/100`}
                     </p>
-                    <div className="w-24 bg-gray-200 dark:bg-gray-700 rounded-full h-2 mt-1">
+                    <div className="w-24 bg-white/10 rounded-full h-2 mt-1">
                       <div
-                        className="bg-primary-500 h-2 rounded-full"
+                        className="bg-accent-500 h-2 rounded-full"
                         style={{ 
                           width: `${selectedMetric === 'apy' ? Math.min(chain.apy * 2, 100) : 
                                   selectedMetric === 'tvl' ? Math.min((chain.tvl / 1e9) * 10, 100) :
@@ -403,53 +409,53 @@ export const Analytics = () => {
           </div>
 
           {/* Performance Chart Placeholder */}
-          <div className="card p-6">
-            <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">
+          <div className="card-elevated p-6">
+            <h3 className="text-lg font-medium text-white mb-4">
               Performance Over Time ({getTimeframeLabel(timeframe)})
             </h3>
-            <div className="h-64 bg-gray-50 dark:bg-gray-800 rounded-lg flex items-center justify-center">
+            <div className="h-64 bg-white/5 rounded-lg flex items-center justify-center">
               <div className="text-center">
                 <ChartBarIcon className="h-12 w-12 text-gray-400 mx-auto mb-2" />
-                <p className="text-gray-500 dark:text-gray-400">Performance chart visualization</p>
-                <p className="text-sm text-gray-400 dark:text-gray-500">Chart integration coming soon</p>
+                <p className="text-gray-400">Performance chart visualization</p>
+                <p className="text-sm text-gray-500">Chart integration coming soon</p>
               </div>
             </div>
           </div>
         </div>
 
         {/* Vault Performance Table */}
-        <div className="card p-6 mb-8">
-          <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">Vault Performance</h3>
+        <div className="card-elevated p-6 mb-8">
+          <h3 className="text-lg font-medium text-white mb-4">Vault Performance</h3>
           
           {userVaults.length > 0 ? (
             <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                <thead className="bg-gray-50 dark:bg-gray-800">
+              <table className="min-w-full divide-y divide-white/10">
+                <thead className="bg-white/5">
                   <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
                       Vault
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
                       Strategy
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
                       Deposited
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
                       Current APY
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
                       Yield Earned
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
                       Active Chain
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
                       Status
                     </th>
                   </tr>
                 </thead>
-                <tbody className="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-700">
+                <tbody className="bg-white/5 divide-y divide-white/10">
                   {userVaults.map((vault) => {
                     const riskProfile = getVaultRiskProfile(vault);
                     const deposited = vault.totalDeposits.toNumber() / 1e9;
@@ -459,35 +465,35 @@ export const Analytics = () => {
                     return (
                       <tr key={vault.id.toNumber()}>
                         <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm font-medium text-gray-900 dark:text-white">
+                          <div className="text-sm font-medium text-white">
                             Vault #{vault.id.toNumber()}
                           </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
-                          <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${
-                            riskProfile === 'conservative' ? 'text-green-600 bg-green-100 dark:bg-green-900' :
-                            riskProfile === 'moderate' ? 'text-yellow-600 bg-yellow-100 dark:bg-yellow-900' :
-                            'text-red-600 bg-red-100 dark:bg-red-900'
+                          <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full border ${
+                            riskProfile === 'conservative' ? 'text-green-400 bg-green-500/20 border-green-500/30' :
+                            riskProfile === 'moderate' ? 'text-yellow-400 bg-yellow-500/20 border-yellow-500/30' :
+                            'text-red-400 bg-red-500/20 border-red-500/30'
                           }`}>
                             {riskProfile.charAt(0).toUpperCase() + riskProfile.slice(1)}
                           </span>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-white">
                           {formatSOL(deposited)}
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-green-600">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-green-400">
                           {formatAPY(apy)}
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-white">
                           {formatSOL(yieldEarned)}
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-white">
                           {getChainName(vault.currentBestChain)}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
-                          <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${
-                            vault.isActive ? 'text-green-600 bg-green-100 dark:bg-green-900' : 
-                            'text-red-600 bg-red-100 dark:bg-red-900'
+                          <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full border ${
+                            vault.isActive ? 'text-green-400 bg-green-500/20 border-green-500/30' : 
+                            'text-red-400 bg-red-500/20 border-red-500/30'
                           }`}>
                             {vault.isActive ? 'Active' : 'Inactive'}
                           </span>
@@ -501,29 +507,29 @@ export const Analytics = () => {
           ) : (
             <div className="text-center py-8">
               <EyeIcon className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-              <p className="text-gray-500 dark:text-gray-400">No vaults to analyze</p>
-              <p className="text-sm text-gray-400 dark:text-gray-500">Create a vault to start tracking performance</p>
+              <p className="text-gray-400">No vaults to analyze</p>
+              <p className="text-sm text-gray-500">Create a vault to start tracking performance</p>
             </div>
           )}
         </div>
 
         {/* Recent Activity */}
-        <div className="card p-6">
-          <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">Recent Activity</h3>
+        <div className="card-elevated p-6">
+          <h3 className="text-lg font-medium text-white mb-4">Recent Activity</h3>
           
           {recentEvents.length > 0 ? (
             <div className="space-y-3">
               {processRecentEvents().map((event, index) => (
-                <div key={index} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                <div key={index} className="flex items-center justify-between p-3 bg-white/5 rounded-lg">
                   <div className="flex items-center">
-                    <div className={`p-2 rounded-full ${event.color} mr-3`}>
+                    <div className={`p-2 rounded-full border mr-3 ${event.color}`}>
                       {event.icon}
                     </div>
                     <div>
-                      <p className="text-sm font-medium text-gray-900 dark:text-white">
+                      <p className="text-sm font-medium text-white">
                         {event.title}
                       </p>
-                      <p className="text-xs text-gray-500 dark:text-gray-400">
+                      <p className="text-xs text-gray-400">
                         {event.description}
                       </p>
                     </div>
@@ -537,8 +543,8 @@ export const Analytics = () => {
           ) : (
             <div className="text-center py-8">
               <CalendarIcon className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-              <p className="text-gray-500 dark:text-gray-400">No recent activity</p>
-              <p className="text-sm text-gray-400 dark:text-gray-500">Activity will appear here as you use OmniVault</p>
+              <p className="text-gray-400">No recent activity</p>
+              <p className="text-sm text-gray-500">Activity will appear here as you use OmniVault</p>
             </div>
           )}
         </div>
