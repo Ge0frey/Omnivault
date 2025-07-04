@@ -1,5 +1,11 @@
 # OmniVault 🚀
 
+## Access platform from - https://omnizerovault.vercel.app/
+
+# Quick links
+### Video demo link with commentary -  https://youtu.be/wfsZKqv5FYo
+
+
 > **Cross-chain yield optimization platform built on Solana with LayerZero V2 integration**
 
 [![Solana](https://img.shields.io/badge/Solana-9945FF?style=for-the-badge&logo=solana&logoColor=white)](https://solana.com/)
@@ -11,13 +17,6 @@
 ## 🌟 Overview
 
 OmniVault is a sophisticated DeFi platform that leverages LayerZero V2 technology to optimize yield farming across multiple blockchain networks. By automatically monitoring yield opportunities across chains and rebalancing user funds, OmniVault maximizes returns while minimizing risk.
-
-### 🎯 **LayerZero Solana**
-
-**Program ID**: `BxpNexvSRuUoaSwdff5aEmCGX7LBDhGPtA79VVraPtqr`  
-**Network**: Solana Devnet  
-**LayerZero Endpoint**: `H3SKp4cL5rpzJDntDa2umKE9AHkGiyss1W8BNDndhHWp`  
-**Explorer**: [View on Solana Explorer](https://explorer.solana.com/address/BxpNexvSRuUoaSwdff5aEmCGX7LBDhGPtA79VVraPtqr?cluster=devnet)
 
 ## ✨ Features
 
