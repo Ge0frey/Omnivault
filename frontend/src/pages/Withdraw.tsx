@@ -1,8 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useWallet } from '@solana/wallet-adapter-react';
-import { PublicKey } from '@solana/web3.js';
 import { 
-  CurrencyDollarIcon, 
   ArrowUpIcon, 
   ExclamationTriangleIcon,
   InformationCircleIcon,
@@ -13,7 +11,7 @@ import {
   CalculatorIcon
 } from '@heroicons/react/24/outline';
 import { useOmniVault } from '../hooks/useOmniVault';
-import { RiskProfile, NATIVE_SOL_MINT } from '../services/omnivault';
+import { NATIVE_SOL_MINT } from '../services/omnivault';
 import { TransactionSuccess } from '../components/TransactionSuccess';
 import { WalletMultiButton } from '@solana/wallet-adapter-react-ui';
 
@@ -49,11 +47,12 @@ const SUPPORTED_TOKENS: TokenOption[] = [
   },
 ];
 
+
+
 export const Withdraw = () => {
   const { connected } = useWallet();
   const { 
     userVaults, 
-    userPosition,
     loading,
     withdrawSol,
     error,
@@ -63,6 +62,7 @@ export const Withdraw = () => {
   const [amount, setAmount] = useState('');
   const [selectedVaultForWithdraw, setSelectedVaultForWithdraw] = useState<any>(null);
   const [withdrawType, setWithdrawType] = useState<'partial' | 'full'>('partial');
+  const [selectedToken, setSelectedToken] = useState<TokenOption>(SUPPORTED_TOKENS[0]);
   const [successTransaction, setSuccessTransaction] = useState<{
     signature: string;
     title: string;
@@ -76,17 +76,33 @@ export const Withdraw = () => {
       ? getAvailableBalance(selectedVaultForWithdraw) 
       : parseFloat(amount);
     
-    if (amountNum <= 0 || amountNum > getAvailableBalance(selectedVaultForWithdraw)) return;
+    if (amountNum <= 0) return;
+    
+    // Check balance for SOL
+    if (selectedToken.symbol === 'SOL' && amountNum > getAvailableBalance(selectedVaultForWithdraw)) return;
 
-    const tx = await withdrawSol(selectedVaultForWithdraw.id, amountNum);
-    if (tx) {
-      console.log('Withdrawal successful:', tx);
-      setAmount('');
-      setSuccessTransaction({
-        signature: tx,
-        title: "Withdrawal Successful!",
-        description: `Successfully withdrew ${amountNum.toFixed(4)} SOL from Vault #${selectedVaultForWithdraw.id.toString()}`
-      });
+    try {
+      let tx;
+      if (selectedToken.symbol === 'SOL') {
+        tx = await withdrawSol(selectedVaultForWithdraw, amountNum);
+      } else {
+        // For USDC/USDT, we would need to implement the withdraw function with token mint
+        // For now, show a message that token withdrawals are coming soon
+        alert(`${selectedToken.symbol} withdrawals are coming soon! Please use SOL for now.`);
+        return;
+      }
+      
+      if (tx) {
+        console.log('Withdrawal successful:', tx);
+        setAmount('');
+        setSuccessTransaction({
+          signature: tx,
+          title: "Withdrawal Successful!",
+          description: `Successfully withdrew ${amountNum.toFixed(4)} ${selectedToken.symbol} from Vault #${selectedVaultForWithdraw.id.toString()}`
+        });
+      }
+    } catch (error) {
+      console.error('Withdrawal failed:', error);
     }
   };
 
@@ -135,7 +151,8 @@ export const Withdraw = () => {
   };
 
   const isFormValid = selectedVaultForWithdraw && 
-    (withdrawType === 'full' || (amount && parseFloat(amount) > 0 && parseFloat(amount) <= getAvailableBalance(selectedVaultForWithdraw)));
+    (withdrawType === 'full' || (amount && parseFloat(amount) > 0 && 
+      (selectedToken.symbol !== 'SOL' || parseFloat(amount) <= getAvailableBalance(selectedVaultForWithdraw))));
 
   if (!connected) {
     return (
@@ -330,6 +347,32 @@ export const Withdraw = () => {
                   </div>
                 </div>
 
+                {/* Token Selection */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                    Select Token
+                  </label>
+                  <div className="grid grid-cols-3 gap-2">
+                    {SUPPORTED_TOKENS.map((token) => (
+                      <button
+                        key={token.address}
+                        onClick={() => setSelectedToken(token)}
+                        className={`p-3 rounded-lg border transition-all ${
+                          selectedToken.address === token.address
+                            ? 'border-accent-500 bg-accent-500/20'
+                            : 'border-white/10 hover:border-white/20 hover:bg-white/5'
+                        }`}
+                      >
+                        <div className="text-center">
+                          <div className="text-lg mb-1">{token.icon}</div>
+                          <div className="text-sm font-medium text-white">{token.symbol}</div>
+                          <div className="text-xs text-gray-400">{token.name}</div>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
                 {/* Withdrawal Type */}
                 <div>
                   <label className="block text-sm font-medium text-gray-300 mb-3">
@@ -377,7 +420,7 @@ export const Withdraw = () => {
                 {withdrawType === 'partial' && (
                   <div>
                     <label htmlFor="amount" className="block text-sm font-medium text-gray-300 mb-2">
-                      Amount to Withdraw (SOL)
+                      Amount to Withdraw ({selectedToken.symbol})
                     </label>
                     <div className="relative">
                       <input
@@ -386,25 +429,27 @@ export const Withdraw = () => {
                         value={amount}
                         onChange={(e) => setAmount(e.target.value)}
                         placeholder="0.00"
-                        step="0.0001"
+                        step={selectedToken.decimals === 9 ? "0.0001" : "0.01"}
                         min="0"
-                        max={getAvailableBalance(selectedVaultForWithdraw)}
+                        max={selectedToken.symbol === 'SOL' ? getAvailableBalance(selectedVaultForWithdraw) : undefined}
                         className="input w-full pr-16"
                       />
-                      <button
-                        onClick={() => setAmount(getAvailableBalance(selectedVaultForWithdraw).toString())}
-                        className="absolute right-2 top-1/2 transform -translate-y-1/2 text-xs text-accent-400 hover:text-accent-300 bg-accent-500/20 px-2 py-1 rounded font-medium transition-colors"
-                      >
-                        MAX
-                      </button>
+                      {selectedToken.symbol === 'SOL' && (
+                        <button
+                          onClick={() => setAmount(getAvailableBalance(selectedVaultForWithdraw).toString())}
+                          className="absolute right-2 top-1/2 transform -translate-y-1/2 text-xs text-accent-400 hover:text-accent-300 bg-accent-500/20 px-2 py-1 rounded font-medium transition-colors"
+                        >
+                          MAX
+                        </button>
+                      )}
                     </div>
                     <div className="mt-2 flex justify-between text-xs sm:text-sm">
                       <span className="text-gray-400">
-                        Available: {getAvailableBalance(selectedVaultForWithdraw).toFixed(4)} SOL
+                        Available: {selectedToken.symbol === 'SOL' ? getAvailableBalance(selectedVaultForWithdraw).toFixed(4) : '0.00'} {selectedToken.symbol}
                       </span>
                       {amount && (
                         <span className="text-gray-400">
-                          ≈ ${(parseFloat(amount) * 150).toFixed(2)} USD
+                          ≈ ${(parseFloat(amount) * (selectedToken.symbol === 'SOL' ? 150 : selectedToken.symbol === 'USDC' ? 1 : 1)).toFixed(2)} USD
                         </span>
                       )}
                     </div>
@@ -443,7 +488,7 @@ export const Withdraw = () => {
                         <span className="text-white font-medium">
                           {withdrawType === 'full' 
                             ? getAvailableBalance(selectedVaultForWithdraw).toFixed(4) 
-                            : (amount || '0')} SOL
+                            : (amount || '0')} {selectedToken.symbol}
                         </span>
                       </div>
                       <div className="flex justify-between">
@@ -453,7 +498,7 @@ export const Withdraw = () => {
                             withdrawType === 'full' 
                               ? getAvailableBalance(selectedVaultForWithdraw) 
                               : parseFloat(amount || '0')
-                          ).toFixed(4)} SOL
+                          ).toFixed(4)} {selectedToken.symbol}
                         </span>
                       </div>
                       <div className="border-t border-blue-500/30 pt-2 flex justify-between">
@@ -463,7 +508,7 @@ export const Withdraw = () => {
                             withdrawType === 'full' 
                               ? getAvailableBalance(selectedVaultForWithdraw) 
                               : parseFloat(amount || '0')
-                          ).toFixed(4)} SOL
+                          ).toFixed(4)} {selectedToken.symbol}
                         </span>
                       </div>
                     </div>
@@ -500,7 +545,7 @@ export const Withdraw = () => {
                   ) : (
                     <>
                       <ArrowUpIcon className="h-5 w-5 mr-2" />
-                      {withdrawType === 'full' ? 'Withdraw All' : `Withdraw ${amount || '0'} SOL`}
+                      {withdrawType === 'full' ? 'Withdraw All' : `Withdraw ${amount || '0'} ${selectedToken.symbol}`}
                     </>
                   )}
                 </button>
