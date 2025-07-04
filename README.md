@@ -579,12 +579,9 @@ OmniVault solves the fragmented DeFi landscape by providing a unified yield opti
 4. 🧪 Add tests
 5. 📤 Submit a pull request
 
-## 📞 Support & Community
+## 📞 Support 
 
 - **📚 Documentation**: See frontend README for detailed frontend docs
-- **💬 Discord**: [Join our community]
-- **🐦 Twitter**: [@OmniVault]
-- **📧 Email**: support@omnivault.io
 - **🐛 Issues**: [GitHub Issues](https://github.com/Ge0frey/Omnivault/issues)
 
 ## 📄 License
