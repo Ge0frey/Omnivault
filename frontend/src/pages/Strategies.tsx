@@ -2,7 +2,6 @@ import { useState, useMemo } from 'react';
 import { 
   ChartBarIcon,
   ArrowTrendingUpIcon,
-  ArrowTrendingDownIcon,
   ShieldCheckIcon,
   GlobeAltIcon,
   CubeTransparentIcon,
