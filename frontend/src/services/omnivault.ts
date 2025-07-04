@@ -271,9 +271,12 @@ export class OmniVaultService {
     const [userPosition] = this.getUserPositionPDA(user, vault);
     const [vaultStore] = this.getVaultStorePDA();
 
+    // Convert SOL to lamports
+    const amountLamports = this.solToLamports(amount);
+
     try {
       const tx = await this.program.methods
-        .depositSol(new BN(amount))
+        .depositSol(new BN(amountLamports))
         .accountsPartial({
           vault,
           userPosition,
@@ -301,9 +304,12 @@ export class OmniVaultService {
     const [userPosition] = this.getUserPositionPDA(user, vault);
     const [vaultStore] = this.getVaultStorePDA();
 
+    // Convert SOL to lamports
+    const amountLamports = this.solToLamports(amount);
+
     try {
       const tx = await this.program.methods
-        .withdrawSol(new BN(amount))
+        .withdrawSol(new BN(amountLamports))
         .accountsPartial({
           vault,
           userPosition,
