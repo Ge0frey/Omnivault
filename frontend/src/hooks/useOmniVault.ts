@@ -16,6 +16,7 @@ import type {
 } from '../services/omnivault';
 import { RiskProfile } from '../services/omnivault';
 import { createOmniVaultService } from '../services/omnivault';
+import type { CrossChainMessage } from '../services/layerzero';
 
 export interface UseOmniVaultReturn {
   // Service instance
@@ -59,6 +60,14 @@ export interface UseOmniVaultReturn {
   queryCrossChainYields: (vaultId: number, targetChains?: number[]) => Promise<string | null>;
   rebalanceVault: (vaultId: number, targetChain: number) => Promise<string | null>;
   updateVaultConfig: (vaultId: number, config: any) => Promise<string | null>;
+  
+  // LayerZero operations
+  handleLzReceive: (srcChainId: number, payload: Uint8Array, vaultId: number) => Promise<string | null>;
+  getLzReceiveTypes: (srcChainId: number, vaultId: number) => Promise<{ accounts: PublicKey[]; accountMetas: any[] } | null>;
+  configureLzPeer: (dstChainId: number, peerAddress: string) => Promise<string | null>;
+  isLzPeerConfigured: (chainId: number, peerAddress: string) => boolean;
+  estimateLzFees: (dstChainId: number, messageSize: number, payInLzToken?: boolean) => Promise<{ nativeFee: number; lzTokenFee: number } | null>;
+  onCrossChainMessage: (chainId: number, callback: (message: CrossChainMessage) => void) => () => void;
   
   // Balance utilities
   refreshBalance: () => Promise<void>;
@@ -556,6 +565,100 @@ export const useOmniVault = (): UseOmniVaultReturn => {
     }
   }, [service, refreshData]);
 
+  // Handle LayerZero lz_receive for incoming cross-chain messages
+  const handleLzReceive = useCallback(async (srcChainId: number, payload: Uint8Array, vaultId: number): Promise<string | null> => {
+    if (!service) {
+      setError('Service not available');
+      return null;
+    }
+
+    try {
+      const tx = await service.handleLzReceive(srcChainId, payload, vaultId);
+      await refreshData();
+      setError(null);
+      return tx;
+    } catch (err: any) {
+      console.error('Failed to handle LayerZero receive:', err);
+      setError(err.message || 'Failed to handle LayerZero receive');
+      return null;
+    }
+  }, [service, refreshData]);
+
+  // Get LayerZero receive types for account resolution
+  const getLzReceiveTypes = useCallback(async (srcChainId: number, vaultId: number): Promise<{ accounts: PublicKey[]; accountMetas: any[] } | null> => {
+    if (!service) {
+      setError('Service not available');
+      return null;
+    }
+
+    try {
+      const result = await service.getLzReceiveTypes(srcChainId, vaultId);
+      setError(null);
+      return result;
+    } catch (err: any) {
+      console.error('Failed to get LayerZero receive types:', err);
+      setError(err.message || 'Failed to get LayerZero receive types');
+      return null;
+    }
+  }, [service]);
+
+  // Configure LayerZero peer for cross-chain communication
+  const configureLzPeer = useCallback(async (dstChainId: number, peerAddress: string): Promise<string | null> => {
+    if (!service) {
+      setError('Service not available');
+      return null;
+    }
+
+    try {
+      const tx = await service.configureLzPeer(dstChainId, peerAddress);
+      setError(null);
+      return tx;
+    } catch (err: any) {
+      console.error('Failed to configure LayerZero peer:', err);
+      setError(err.message || 'Failed to configure LayerZero peer');
+      return null;
+    }
+  }, [service]);
+
+  // Check if LayerZero peer is configured
+  const isLzPeerConfigured = useCallback((chainId: number, peerAddress: string): boolean => {
+    if (!service) return false;
+    return service.isLzPeerConfigured(chainId, peerAddress);
+  }, [service]);
+
+  // Estimate LayerZero fees for cross-chain operations
+  const estimateLzFees = useCallback(async (dstChainId: number, messageSize: number, payInLzToken: boolean = false): Promise<{ nativeFee: number; lzTokenFee: number } | null> => {
+    if (!service) {
+      setError('Service not available');
+      return null;
+    }
+
+    try {
+      const fees = await service.estimateLzFees(dstChainId, messageSize, payInLzToken);
+      setError(null);
+      return fees;
+    } catch (err: any) {
+      console.error('Failed to estimate LayerZero fees:', err);
+      setError(err.message || 'Failed to estimate LayerZero fees');
+      return null;
+    }
+  }, [service]);
+
+  // Add cross-chain message listener
+  const onCrossChainMessage = useCallback((chainId: number, callback: (message: CrossChainMessage) => void): (() => void) => {
+    if (!service) {
+      console.warn('Service not available for cross-chain message listener');
+      return () => {}; // Return empty cleanup function
+    }
+
+    try {
+      return service.onCrossChainMessage(chainId, callback);
+    } catch (err: unknown) {
+      console.error('Failed to add cross-chain message listener:', err);
+      return () => {}; // Return empty cleanup function
+    }
+  }, [service]);
+
   // Select a vault and load its data
   const selectVault = useCallback(async (vault: Vault & { publicKey: PublicKey }) => {
     setSelectedVault(vault);
@@ -652,6 +755,14 @@ export const useOmniVault = (): UseOmniVaultReturn => {
     queryCrossChainYields,
     rebalanceVault,
     updateVaultConfig,
+    
+    // LayerZero operations
+    handleLzReceive,
+    getLzReceiveTypes,
+    configureLzPeer,
+    isLzPeerConfigured,
+    estimateLzFees,
+    onCrossChainMessage,
     
     // Balance utilities
     refreshBalance,
