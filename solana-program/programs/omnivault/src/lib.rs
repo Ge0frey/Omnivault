@@ -8,7 +8,7 @@ use anchor_lang::solana_program::{
 };
 use std::str::FromStr;
 
-declare_id!("66bzWSC6dWFKdAZDcdj7wbjHZ6YWBHB4o77tbP3twVnd");
+declare_id!("BxpNexvSRuUoaSwdff5aEmCGX7LBDhGPtA79VVraPtqr");
 
 // LayerZero V2 Configuration
 const LAYERZERO_ENDPOINT: &str = "LZ1ZeTMZZnKWEcG2ukQpvJE2QnLEyV5uYPVfPjTvZmV";  // LayerZero Devnet Endpoint

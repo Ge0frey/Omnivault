@@ -5,7 +5,7 @@
  * IDL can be found at `target/idl/omnivault.json`.
  */
 export type Omnivault = {
-  "address": "66bzWSC6dWFKdAZDcdj7wbjHZ6YWBHB4o77tbP3twVnd",
+  "address": "BxpNexvSRuUoaSwdff5aEmCGX7LBDhGPtA79VVraPtqr",
   "metadata": {
     "name": "omnivault",
     "version": "0.1.0",
