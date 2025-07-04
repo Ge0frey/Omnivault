@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
-import { ArrowRightIcon, ChartBarIcon, ShieldCheckIcon, GlobeAltIcon, SparklesIcon, ArrowPathIcon, CubeTransparentIcon, QuestionMarkCircleIcon, DocumentTextIcon, CurrencyDollarIcon, PlusIcon, ArrowDownIcon, ArrowUpIcon, EyeIcon } from '@heroicons/react/24/outline';
+import { useState } from 'react';
+import { ArrowRightIcon, ChartBarIcon, ShieldCheckIcon, GlobeAltIcon, SparklesIcon, ArrowPathIcon, CubeTransparentIcon, QuestionMarkCircleIcon, DocumentTextIcon, CurrencyDollarIcon, PlusIcon, ArrowDownIcon, ArrowUpIcon, EyeIcon, ChevronDownIcon } from '@heroicons/react/24/outline';
 
 const features = [
   {
@@ -96,6 +97,12 @@ const faqs = [
 ];
 
 export const Landing = () => {
+  const [openFaq, setOpenFaq] = useState<number | null>(null);
+
+  const toggleFaq = (index: number) => {
+    setOpenFaq(openFaq === index ? null : index);
+  };
+
   return (
     <div className="relative min-h-screen overflow-hidden">
       {/* Background Effects */}
@@ -258,22 +265,41 @@ export const Landing = () => {
             </p>
           </div>
 
-          <div className="space-y-6">
+          <div className="space-y-4">
             {faqs.map((faq, index) => (
-              <div key={index} className="card-elevated p-6 group">
-                <div className="flex items-start">
-                  <div className="flex-shrink-0 mr-4">
-                    <div className="w-8 h-8 rounded-lg bg-accent-500/20 flex items-center justify-center">
-                      <span className="text-accent-400 font-bold text-sm">{index + 1}</span>
+              <div key={index} className="card-elevated overflow-hidden">
+                <button
+                  onClick={() => toggleFaq(index)}
+                  className="w-full p-6 text-left focus:outline-none focus:ring-2 focus:ring-accent-500/50 focus:ring-inset transition-all duration-200 hover:bg-white/5"
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center">
+                      <div className="flex-shrink-0 mr-4">
+                        <div className="w-8 h-8 rounded-lg bg-accent-500/20 flex items-center justify-center">
+                          <span className="text-accent-400 font-bold text-sm">{index + 1}</span>
+                        </div>
+                      </div>
+                      <h3 className="text-lg font-semibold text-white group-hover:text-accent-400 transition-colors">
+                        {faq.question}
+                      </h3>
                     </div>
+                    <ChevronDownIcon 
+                      className={`h-5 w-5 text-gray-400 transition-transform duration-300 ${
+                        openFaq === index ? 'transform rotate-180 text-accent-400' : ''
+                      }`}
+                    />
                   </div>
-                  <div className="flex-1">
-                    <h3 className="text-lg font-semibold text-white mb-3 group-hover:text-accent-400 transition-colors">
-                      {faq.question}
-                    </h3>
-                    <p className="text-gray-300 leading-relaxed">
-                      {faq.answer}
-                    </p>
+                </button>
+                
+                <div className={`overflow-hidden transition-all duration-300 ease-in-out ${
+                  openFaq === index ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'
+                }`}>
+                  <div className="px-6 pb-6">
+                    <div className="ml-12 pt-2 border-t border-white/10">
+                      <p className="text-gray-300 leading-relaxed mt-4">
+                        {faq.answer}
+                      </p>
+                    </div>
                   </div>
                 </div>
               </div>
