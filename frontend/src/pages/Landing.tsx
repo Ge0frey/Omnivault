@@ -226,7 +226,7 @@ export const Landing = () => {
           </div>
           
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 sm:gap-8">
-            {features.map((feature, index) => (
+            {features.map((feature, _index) => (
               <div key={feature.name} className="card-elevated p-6 sm:p-8 group hover:scale-105 transition-all duration-500">
                 <div className="flex flex-col h-full">
                   <div className="flex items-center mb-4 sm:mb-6">
