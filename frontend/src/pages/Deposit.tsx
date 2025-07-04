@@ -1,19 +1,16 @@
-import React, { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useWallet } from '@solana/wallet-adapter-react';
-import { PublicKey } from '@solana/web3.js';
 import { 
   CurrencyDollarIcon, 
   ArrowDownIcon, 
-  PlusIcon,
   ExclamationTriangleIcon,
   PlusCircleIcon,
   CheckCircleIcon,
   InformationCircleIcon,
-  ShieldCheckIcon,
-  ArrowRightIcon
+  ShieldCheckIcon
 } from '@heroicons/react/24/outline';
 import { useOmniVault } from '../hooks/useOmniVault';
-import { RiskProfile, NATIVE_SOL_MINT } from '../services/omnivault';
+import { NATIVE_SOL_MINT } from '../services/omnivault';
 import { TransactionSuccess } from '../components/TransactionSuccess';
 import { WalletMultiButton } from '@solana/wallet-adapter-react-ui';
 
@@ -49,21 +46,22 @@ const SUPPORTED_TOKENS: TokenOption[] = [
   },
 ];
 
+
+
 export const Deposit = () => {
   const { connected } = useWallet();
   const { 
     userVaults, 
-    selectedVault, 
     userSolBalance,
     loading,
     depositSol,
-    selectVault,
     error,
     clearError
   } = useOmniVault();
   
   const [amount, setAmount] = useState('');
   const [selectedVaultForDeposit, setSelectedVaultForDeposit] = useState<any>(null);
+  const [selectedToken, setSelectedToken] = useState<TokenOption>(SUPPORTED_TOKENS[0]);
   const [successTransaction, setSuccessTransaction] = useState<{
     signature: string;
     title: string;
@@ -74,17 +72,33 @@ export const Deposit = () => {
     if (!selectedVaultForDeposit || !amount) return;
     
     const amountNum = parseFloat(amount);
-    if (amountNum <= 0 || amountNum > userSolBalance) return;
+    if (amountNum <= 0) return;
+    
+    // Check balance for SOL
+    if (selectedToken.symbol === 'SOL' && amountNum > userSolBalance) return;
 
-    const tx = await depositSol(selectedVaultForDeposit.id, amountNum);
-    if (tx) {
-      console.log('Deposit successful:', tx);
-      setAmount('');
-      setSuccessTransaction({
-        signature: tx,
-        title: "Deposit Successful!",
-        description: `Successfully deposited ${amount} SOL into Vault #${selectedVaultForDeposit.id.toString()}`
-      });
+    try {
+      let tx;
+      if (selectedToken.symbol === 'SOL') {
+        tx = await depositSol(selectedVaultForDeposit, amountNum);
+      } else {
+        // For USDC/USDT, we would need to implement the deposit function with token mint
+        // For now, show a message that token deposits are coming soon
+        alert(`${selectedToken.symbol} deposits are coming soon! Please use SOL for now.`);
+        return;
+      }
+      
+      if (tx) {
+        console.log('Deposit successful:', tx);
+        setAmount('');
+        setSuccessTransaction({
+          signature: tx,
+          title: "Deposit Successful!",
+          description: `Successfully deposited ${amount} ${selectedToken.symbol} into Vault #${selectedVaultForDeposit.id.toString()}`
+        });
+      }
+    } catch (error) {
+      console.error('Deposit failed:', error);
     }
   };
 
@@ -111,7 +125,8 @@ export const Deposit = () => {
     }
   };
 
-  const isFormValid = selectedVaultForDeposit && amount && parseFloat(amount) > 0 && parseFloat(amount) <= userSolBalance;
+  const isFormValid = selectedVaultForDeposit && amount && parseFloat(amount) > 0 && 
+    (selectedToken.symbol !== 'SOL' || parseFloat(amount) <= userSolBalance);
 
   if (!connected) {
     return (
@@ -316,10 +331,36 @@ export const Deposit = () => {
                   </div>
                 </div>
 
+                {/* Token Selection */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                    Select Token
+                  </label>
+                  <div className="grid grid-cols-3 gap-2">
+                    {SUPPORTED_TOKENS.map((token) => (
+                      <button
+                        key={token.address}
+                        onClick={() => setSelectedToken(token)}
+                        className={`p-3 rounded-lg border transition-all ${
+                          selectedToken.address === token.address
+                            ? 'border-accent-500 bg-accent-500/20'
+                            : 'border-white/10 hover:border-white/20 hover:bg-white/5'
+                        }`}
+                      >
+                        <div className="text-center">
+                          <div className="text-lg mb-1">{token.icon}</div>
+                          <div className="text-sm font-medium text-white">{token.symbol}</div>
+                          <div className="text-xs text-gray-400">{token.name}</div>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
                 {/* Amount Input */}
                 <div>
                   <label htmlFor="amount" className="block text-sm font-medium text-gray-300 mb-2">
-                    Amount to Deposit (SOL)
+                    Amount to Deposit ({selectedToken.symbol})
                   </label>
                   <div className="relative">
                     <input
@@ -328,25 +369,27 @@ export const Deposit = () => {
                       value={amount}
                       onChange={(e) => setAmount(e.target.value)}
                       placeholder="0.00"
-                      step="0.0001"
+                      step={selectedToken.decimals === 9 ? "0.0001" : "0.01"}
                       min="0"
-                      max={userSolBalance}
+                      max={selectedToken.symbol === 'SOL' ? userSolBalance : undefined}
                       className="input w-full pr-16"
                     />
-                    <button
-                      onClick={() => setAmount(userSolBalance.toString())}
-                      className="absolute right-2 top-1/2 transform -translate-y-1/2 text-xs text-accent-400 hover:text-accent-300 bg-accent-500/20 px-2 py-1 rounded font-medium transition-colors"
-                    >
-                      MAX
-                    </button>
+                    {selectedToken.symbol === 'SOL' && (
+                      <button
+                        onClick={() => setAmount(userSolBalance.toString())}
+                        className="absolute right-2 top-1/2 transform -translate-y-1/2 text-xs text-accent-400 hover:text-accent-300 bg-accent-500/20 px-2 py-1 rounded font-medium transition-colors"
+                      >
+                        MAX
+                      </button>
+                    )}
                   </div>
                   <div className="mt-2 flex justify-between text-xs sm:text-sm">
                     <span className="text-gray-400">
-                      Available: {userSolBalance.toFixed(4)} SOL
+                      Available: {selectedToken.symbol === 'SOL' ? userSolBalance.toFixed(4) : '0.00'} {selectedToken.symbol}
                     </span>
                     {amount && (
                       <span className="text-gray-400">
-                        ≈ ${(parseFloat(amount) * 150).toFixed(2)} USD
+                        ≈ ${(parseFloat(amount) * (selectedToken.symbol === 'SOL' ? 150 : selectedToken.symbol === 'USDC' ? 1 : 1)).toFixed(2)} USD
                       </span>
                     )}
                   </div>
@@ -356,16 +399,27 @@ export const Deposit = () => {
                 <div>
                   <p className="text-sm text-gray-400 mb-2">Quick amounts:</p>
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                    {[0.1, 0.5, 1.0, 5.0].map((quickAmount) => (
-                      <button
-                        key={quickAmount}
-                        onClick={() => setAmount(Math.min(quickAmount, userSolBalance).toString())}
-                        disabled={quickAmount > userSolBalance}
-                        className="btn btn-secondary text-xs px-2 py-1 disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        {quickAmount} SOL
-                      </button>
-                    ))}
+                    {selectedToken.symbol === 'SOL' ? 
+                      [0.1, 0.5, 1.0, 5.0].map((quickAmount) => (
+                        <button
+                          key={quickAmount}
+                          onClick={() => setAmount(Math.min(quickAmount, userSolBalance).toString())}
+                          disabled={quickAmount > userSolBalance}
+                          className="btn btn-secondary text-xs px-2 py-1 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          {quickAmount} {selectedToken.symbol}
+                        </button>
+                      )) :
+                      [10, 50, 100, 500].map((quickAmount) => (
+                        <button
+                          key={quickAmount}
+                          onClick={() => setAmount(quickAmount.toString())}
+                          className="btn btn-secondary text-xs px-2 py-1"
+                        >
+                          {quickAmount} {selectedToken.symbol}
+                        </button>
+                      ))
+                    }
                   </div>
                 </div>
 
@@ -399,7 +453,7 @@ export const Deposit = () => {
                   ) : (
                     <>
                       <ArrowDownIcon className="h-5 w-5 mr-2" />
-                      Deposit {amount || '0'} SOL
+                      Deposit {amount || '0'} {selectedToken.symbol}
                     </>
                   )}
                 </button>
@@ -407,7 +461,7 @@ export const Deposit = () => {
                 {!isFormValid && amount && (
                   <div className="text-center">
                     <p className="text-xs sm:text-sm text-red-400">
-                      {parseFloat(amount) > userSolBalance 
+                      {selectedToken.symbol === 'SOL' && parseFloat(amount) > userSolBalance 
                         ? 'Insufficient balance' 
                         : parseFloat(amount) <= 0 
                         ? 'Amount must be greater than 0' 
