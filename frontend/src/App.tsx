@@ -2,6 +2,7 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { WalletProvider } from './components/WalletProvider';
 import { Header } from './components/Header';
+import { CrossChainMessageHandler } from './components/CrossChainMessageHandler';
 import { Dashboard } from './pages/Dashboard';
 import { Deposit } from './pages/Deposit';
 import { Withdraw } from './pages/Withdraw';
@@ -33,6 +34,7 @@ function App() {
             </div>
             
             <Header />
+            <CrossChainMessageHandler />
             
             <main className="relative z-10">
               <Routes>
