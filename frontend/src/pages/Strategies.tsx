@@ -90,13 +90,13 @@ export const Strategies = () => {
   const getRiskProfileColor = (riskProfile: string) => {
     switch (riskProfile) {
       case 'conservative':
-        return 'text-green-600 bg-green-100 dark:text-green-400 dark:bg-green-900';
+        return 'text-green-400 bg-green-500/20 border-green-500/30';
       case 'moderate':
-        return 'text-yellow-600 bg-yellow-100 dark:text-yellow-400 dark:bg-yellow-900';
+        return 'text-yellow-400 bg-yellow-500/20 border-yellow-500/30';
       case 'aggressive':
-        return 'text-red-600 bg-red-100 dark:text-red-400 dark:bg-red-900';
+        return 'text-red-400 bg-red-500/20 border-red-500/30';
       default:
-        return 'text-gray-600 bg-gray-100 dark:text-gray-400 dark:bg-gray-900';
+        return 'text-gray-400 bg-gray-500/20 border-gray-500/30';
     }
   };
 
@@ -145,14 +145,20 @@ export const Strategies = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-8">
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen relative">
+      {/* Background Effects */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-10 left-10 w-64 h-64 bg-accent-500/5 rounded-full blur-3xl animate-pulse-slow"></div>
+        <div className="absolute bottom-20 right-10 w-80 h-80 bg-primary-500/5 rounded-full blur-3xl animate-pulse-slow" style={{ animationDelay: '3s' }}></div>
+      </div>
+
+      <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
         <div className="mb-8">
           <div className="flex justify-between items-center">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Strategies</h1>
-              <p className="mt-2 text-gray-600 dark:text-gray-300">
+              <h1 className="text-4xl font-bold text-white">Strategies</h1>
+              <p className="mt-2 text-gray-300 text-lg font-light">
                 Manage your yield optimization strategies and explore new opportunities
               </p>
             </div>
@@ -168,7 +174,7 @@ export const Strategies = () => {
 
         {/* Active Strategies */}
         <div className="mb-8">
-          <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
+          <h2 className="text-xl font-semibold text-white mb-4">
             Your Active Strategies
           </h2>
           
@@ -182,21 +188,21 @@ export const Strategies = () => {
                 return (
                   <div
                     key={vault.id.toNumber()}
-                    className={`card p-6 cursor-pointer transition-all ${
+                    className={`card-elevated p-6 cursor-pointer transition-all ${
                       isSelected 
-                        ? 'ring-2 ring-primary-500 border-primary-200 dark:border-primary-700' 
-                        : 'hover:shadow-lg'
+                        ? 'ring-2 ring-accent-500 border-accent-400/50' 
+                        : 'hover:scale-105'
                     }`}
                     onClick={() => selectVault(vault)}
                   >
                     <div className="flex items-center justify-between mb-4">
                       <div className="flex items-center">
                         {getRiskProfileIcon(riskProfile)}
-                        <h3 className="ml-2 text-lg font-medium text-gray-900 dark:text-white">
+                        <h3 className="ml-2 text-lg font-medium text-white">
                           Vault #{vault.id.toNumber()}
                         </h3>
                       </div>
-                      <span className={`px-2 py-1 text-xs font-medium rounded-full ${getRiskProfileColor(riskProfile)}`}>
+                      <span className={`px-2 py-1 text-xs font-medium rounded-full border ${getRiskProfileColor(riskProfile)}`}>
                         {riskProfile.charAt(0).toUpperCase() + riskProfile.slice(1)}
                       </span>
                     </div>
@@ -204,60 +210,60 @@ export const Strategies = () => {
                     <div className="space-y-3">
                       <div className="grid grid-cols-2 gap-4">
                         <div>
-                          <p className="text-sm text-gray-500 dark:text-gray-400">Total Deposited</p>
-                          <p className="text-lg font-semibold text-gray-900 dark:text-white">
+                          <p className="text-sm text-gray-400">Total Deposited</p>
+                          <p className="text-lg font-semibold text-white">
                             {performance.totalDeposits.toFixed(4)} SOL
                           </p>
                         </div>
                         <div>
-                          <p className="text-sm text-gray-500 dark:text-gray-400">Current APY</p>
-                          <p className="text-lg font-semibold text-green-600">
+                          <p className="text-sm text-gray-400">Current APY</p>
+                          <p className="text-lg font-semibold text-green-400">
                             {formatAPY(performance.currentAPY)}
                           </p>
                         </div>
                       </div>
 
                       <div>
-                        <p className="text-sm text-gray-500 dark:text-gray-400">Active Chain</p>
-                        <p className="text-sm font-medium text-gray-900 dark:text-white">
+                        <p className="text-sm text-gray-400">Active Chain</p>
+                        <p className="text-sm font-medium text-white">
                           {getChainName(vault.currentBestChain)}
                         </p>
                       </div>
 
                       <div>
-                        <p className="text-sm text-gray-500 dark:text-gray-400">Target Chains</p>
+                        <p className="text-sm text-gray-400">Target Chains</p>
                         <div className="flex flex-wrap gap-1 mt-1">
                           {vault.targetChains.slice(0, 3).map((chainId) => (
                             <span
                               key={chainId}
-                              className="px-2 py-1 text-xs bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded"
+                              className="px-2 py-1 text-xs bg-white/10 text-gray-300 rounded"
                             >
                               {getChainName(chainId)}
                             </span>
                           ))}
                           {vault.targetChains.length > 3 && (
-                            <span className="px-2 py-1 text-xs bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 rounded">
+                            <span className="px-2 py-1 text-xs bg-white/10 text-gray-400 rounded">
                               +{vault.targetChains.length - 3}
                             </span>
                           )}
                         </div>
                       </div>
 
-                      <div className="flex items-center justify-between pt-2 border-t border-gray-200 dark:border-gray-700">
+                      <div className="flex items-center justify-between pt-2 border-t border-white/10">
                         <div className="flex items-center text-sm">
                           {vault.isActive ? (
                             <>
-                              <CheckCircleIcon className="h-4 w-4 text-green-500 mr-1" />
-                              <span className="text-green-600">Active</span>
+                              <CheckCircleIcon className="h-4 w-4 text-green-400 mr-1" />
+                              <span className="text-green-400">Active</span>
                             </>
                           ) : (
                             <>
-                              <ExclamationTriangleIcon className="h-4 w-4 text-yellow-500 mr-1" />
-                              <span className="text-yellow-600">Inactive</span>
+                              <ExclamationTriangleIcon className="h-4 w-4 text-yellow-400 mr-1" />
+                              <span className="text-yellow-400">Inactive</span>
                             </>
                           )}
                         </div>
-                        <span className="text-xs text-gray-500 dark:text-gray-400">
+                        <span className="text-xs text-gray-400">
                           {performance.totalYield > 0 ? `+${performance.performance.toFixed(2)}%` : '0%'}
                         </span>
                       </div>
@@ -267,9 +273,9 @@ export const Strategies = () => {
               })}
             </div>
           ) : (
-            <div className="card p-8 text-center">
+            <div className="card-elevated p-8 text-center">
               <CogIcon className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-              <p className="text-gray-500 dark:text-gray-400 mb-4">
+              <p className="text-gray-400 mb-4">
                 You don't have any active strategies yet
               </p>
               <button
@@ -284,57 +290,57 @@ export const Strategies = () => {
 
         {/* Strategy Templates */}
         <div>
-          <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
+          <h2 className="text-xl font-semibold text-white mb-4">
             Strategy Templates
           </h2>
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {strategyTemplates.map((template) => (
-              <div key={template.id} className="card p-6">
+              <div key={template.id} className="card-elevated p-6">
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center">
                     {getRiskProfileIcon(template.riskProfile)}
-                    <h3 className="ml-2 text-lg font-medium text-gray-900 dark:text-white">
+                    <h3 className="ml-2 text-lg font-medium text-white">
                       {template.name}
                     </h3>
                   </div>
-                  <span className={`px-2 py-1 text-xs font-medium rounded-full ${getRiskProfileColor(template.riskProfile)}`}>
+                  <span className={`px-2 py-1 text-xs font-medium rounded-full border ${getRiskProfileColor(template.riskProfile)}`}>
                     {template.riskProfile.charAt(0).toUpperCase() + template.riskProfile.slice(1)}
                   </span>
                 </div>
 
-                <p className="text-sm text-gray-600 dark:text-gray-300 mb-4">
+                <p className="text-sm text-gray-300 mb-4">
                   {template.description}
                 </p>
 
                 <div className="space-y-3 mb-4">
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <p className="text-sm text-gray-500 dark:text-gray-400">Expected APY</p>
-                      <p className="text-lg font-semibold text-green-600">
+                      <p className="text-sm text-gray-400">Expected APY</p>
+                      <p className="text-lg font-semibold text-green-400">
                         {formatAPY(template.expectedAPY)}
                       </p>
                     </div>
                     <div>
-                      <p className="text-sm text-gray-500 dark:text-gray-400">Risk Score</p>
-                      <p className="text-lg font-semibold text-gray-900 dark:text-white">
+                      <p className="text-sm text-gray-400">Risk Score</p>
+                      <p className="text-lg font-semibold text-white">
                         {template.riskScore}/100
                       </p>
                     </div>
                   </div>
 
                   <div>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">Min Deposit</p>
-                    <p className="text-sm font-medium text-gray-900 dark:text-white">
+                    <p className="text-sm text-gray-400">Min Deposit</p>
+                    <p className="text-sm font-medium text-white">
                       {template.minDeposit} SOL
                     </p>
                   </div>
 
                   <div>
-                    <p className="text-sm text-gray-500 dark:text-gray-400 mb-2">Features</p>
+                    <p className="text-sm text-gray-400 mb-2">Features</p>
                     <div className="space-y-1">
                       {template.features.map((feature, index) => (
-                        <div key={index} className="flex items-center text-sm text-gray-600 dark:text-gray-300">
-                          <CheckCircleIcon className="h-3 w-3 text-green-500 mr-2 flex-shrink-0" />
+                        <div key={index} className="flex items-center text-sm text-gray-300">
+                          <CheckCircleIcon className="h-3 w-3 text-green-400 mr-2 flex-shrink-0" />
                           {feature}
                         </div>
                       ))}
@@ -358,34 +364,34 @@ export const Strategies = () => {
 
         {/* Create Strategy Modal */}
         {showCreateModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-            <div className="bg-white dark:bg-gray-800 rounded-lg max-w-md w-full p-6">
-              <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+            <div className="card-elevated max-w-md w-full p-6">
+              <h3 className="text-lg font-medium text-white mb-4">
                 {selectedTemplate ? `Create ${selectedTemplate.name} Strategy` : 'Create Custom Strategy'}
               </h3>
 
               {selectedTemplate && (
                 <div className="space-y-4 mb-6">
-                  <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
+                  <div className="bg-white/5 p-4 rounded-lg">
                     <div className="flex items-center mb-2">
                       {getRiskProfileIcon(selectedTemplate.riskProfile)}
-                      <span className="ml-2 font-medium text-gray-900 dark:text-white">
+                      <span className="ml-2 font-medium text-white">
                         {selectedTemplate.name}
                       </span>
                     </div>
-                    <p className="text-sm text-gray-600 dark:text-gray-300 mb-3">
+                    <p className="text-sm text-gray-300 mb-3">
                       {selectedTemplate.description}
                     </p>
                     <div className="grid grid-cols-2 gap-4 text-sm">
                       <div>
-                        <span className="text-gray-500 dark:text-gray-400">Expected APY:</span>
-                        <span className="ml-1 font-medium text-green-600">
+                        <span className="text-gray-400">Expected APY:</span>
+                        <span className="ml-1 font-medium text-green-400">
                           {formatAPY(selectedTemplate.expectedAPY)}
                         </span>
                       </div>
                       <div>
-                        <span className="text-gray-500 dark:text-gray-400">Risk Score:</span>
-                        <span className="ml-1 font-medium text-gray-900 dark:text-white">
+                        <span className="text-gray-400">Risk Score:</span>
+                        <span className="ml-1 font-medium text-white">
                           {selectedTemplate.riskScore}/100
                         </span>
                       </div>
@@ -393,7 +399,7 @@ export const Strategies = () => {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    <label className="block text-sm font-medium text-gray-300 mb-2">
                       Minimum Deposit (SOL)
                     </label>
                     <input
@@ -403,7 +409,7 @@ export const Strategies = () => {
                       placeholder={selectedTemplate.minDeposit.toString()}
                       className="input w-full"
                     />
-                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                    <p className="text-xs text-gray-400 mt-1">
                       Default: {selectedTemplate.minDeposit} SOL
                     </p>
                   </div>
