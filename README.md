@@ -12,28 +12,30 @@
 
 OmniVault is a sophisticated DeFi platform that leverages LayerZero V2 technology to optimize yield farming across multiple blockchain networks. By automatically monitoring yield opportunities across chains and rebalancing user funds, OmniVault maximizes returns while minimizing risk.
 
-### 🎯 **Hackathon Submission**: LayerZero Solana Breakout Bounty
+### 🎯 **LayerZero Solana**
 
-**Program ID**: `HAGPttZ592S5xv5TPrkVLPQpkNGrNPAw42kGjdR9vUc4`  
+**Program ID**: `BxpNexvSRuUoaSwdff5aEmCGX7LBDhGPtA79VVraPtqr`  
 **Network**: Solana Devnet  
 **LayerZero Endpoint**: `H3SKp4cL5rpzJDntDa2umKE9AHkGiyss1W8BNDndhHWp`  
-**Explorer**: [View on Solana Explorer](https://explorer.solana.com/address/HAGPttZ592S5xv5TPrkVLPQpkNGrNPAw42kGjdR9vUc4?cluster=devnet)
+**Explorer**: [View on Solana Explorer](https://explorer.solana.com/address/BxpNexvSRuUoaSwdff5aEmCGX7LBDhGPtA79VVraPtqr?cluster=devnet)
 
 ## ✨ Features
 
 ### 🔥 Core Functionality
 - **🌐 Cross-Chain Yield Optimization**: Automatically find and capitalize on the best yield opportunities across supported chains
 - **⚡ LayerZero V2 Integration**: Secure, trust-minimized cross-chain messaging
-- **🛡️ Risk Management**: Risk-Based Vault Management, choose from Conservative, Moderate, or Aggressive risk profiles
+- **🛡️ Risk Management**: Risk-Based Vault Management with Conservative, Moderate, and Aggressive risk profiles
 - **🔄 Real-time Rebalancing**: Automated fund movement to highest-yielding protocols
-- **📊 Transparent Analytics**: Cross-chain analytics dashboard
+- **📊 Transparent Analytics**: Cross-chain analytics dashboard with performance tracking
+- **💰 SOL & Token Support**: Native SOL deposits and withdrawals with SPL token support
 
 ### 🛠️ Technical Features
 - **🏗️ Solana Program**: High-performance smart contracts built with Anchor framework
 - **🌉 LayerZero OApp**: Native omnichain application enabling true cross-chain functionality
 - **⚛️ React Frontend**: Modern, responsive user interface with real-time updates
-- **🔗 Wallet Integration**: Support for major Solana wallets (Phantom, Solflare, etc.)
-- **📡 Live Data Sync**: Real-time synchronization and notifications
+- **🔗 Wallet Integration**: Support for Phantom, Solflare, and Torus wallets
+- **📡 Live Data Sync**: Real-time synchronization and event notifications
+- **🐳 Docker Support**: Containerized local development environment
 
 ## 🏗️ Architecture
 
@@ -58,6 +60,7 @@ OmniVault is a sophisticated DeFi platform that leverages LayerZero V2 technolog
                                     │ • Dashboard     │
                                     │ • Vault Mgmt    │
                                     │ • Analytics     │
+                                    │ • Yield Monitor │
                                     └─────────────────┘
                                               │
                                               │ 2. Create Vault / Deposit
@@ -69,6 +72,7 @@ OmniVault is a sophisticated DeFi platform that leverages LayerZero V2 technolog
                                     │ • VaultStore    │
                                     │ • User Vaults   │
                                     │ • Positions     │
+                                    │ • YieldTracker  │
                                     └─────────────────┘
                                               │
                                               │ 3. Cross-chain Operations
@@ -103,12 +107,25 @@ OmniVault/
 ├── 🎨 frontend/                   # React TypeScript frontend
 │   ├── src/
 │   │   ├── components/           # 🧩 Reusable UI components
-│   │   ├── pages/                # 📄 Page components (Dashboard, Deposit, etc.)
-│   │   ├── hooks/                # 🪝 Custom React hooks (useOmniVault)
-│   │   ├── services/             # 🔧 Blockchain services & API calls
+│   │   │   ├── Header.tsx        # Navigation header
+│   │   │   ├── WalletProvider.tsx # Solana wallet integration
+│   │   │   ├── YieldMonitor.tsx  # Cross-chain yield tracking
+│   │   │   └── TransactionSuccess.tsx # Transaction feedback
+│   │   ├── pages/                # 📄 Application pages
+│   │   │   ├── Landing.tsx       # Landing page
+│   │   │   ├── Dashboard.tsx     # Main dashboard
+│   │   │   ├── Deposit.tsx       # Deposit interface
+│   │   │   ├── Withdraw.tsx      # Withdrawal interface
+│   │   │   ├── Strategies.tsx    # Strategy templates
+│   │   │   └── Analytics.tsx     # Performance analytics
+│   │   ├── hooks/                # 🪝 Custom React hooks
+│   │   │   └── useOmniVault.ts   # Main application state hook
+│   │   ├── services/             # 🔧 Blockchain services
+│   │   │   └── omnivault.ts      # Solana program service
 │   │   ├── idl/                  # 📋 Generated IDL types
-│   │   └── utils/                # 🛠️ Utility functions
-│   ├── public/                   # 🖼️ Static assets
+│   │   │   ├── omnivault.json    # Program interface definition
+│   │   │   └── omnivault.ts      # TypeScript types
+│   │   └── assets/               # 🖼️ Static assets
 │   └── package.json              # 📦 Frontend dependencies
 │
 ├── ⚓ solana-program/             # Solana program (smart contracts)
@@ -117,6 +134,7 @@ OmniVault/
 │   │       └── src/
 │   │           └── lib.rs        # 🦀 Main program logic with LayerZero V2
 │   ├── tests/                    # 🧪 Comprehensive program tests
+│   │   └── omnivault.ts          # Test suite
 │   ├── target/                   # 🎯 Build artifacts & IDL
 │   └── Anchor.toml               # ⚙️ Anchor configuration
 │
@@ -124,7 +142,7 @@ OmniVault/
 │   ├── deploy.sh                 # 🚀 Automated deployment script
 │   └── generate-idl.js           # 📋 IDL TypeScript generation
 │
-├── 🐳 docker-compose.yml         # Local development environment
+├── 🐳 docker-compose.yml         # Local Solana test validator
 └── 📖 README.md                  # This file
 ```
 
@@ -135,14 +153,14 @@ OmniVault/
 - **Node.js 18+** and npm
 - **Rust** and Cargo
 - **Solana CLI** tools
-- **Anchor framework** v0.29+
+- **Anchor framework** v0.31+
 - **Solana wallet** with devnet SOL
 
 ### 💻 Installation
 
 1. **Clone the repository**
    ```bash
-   git clone <repository-url>
+   git clone https://github.com/Ge0frey/Omnivault
    cd OmniVault
    ```
 
@@ -157,32 +175,61 @@ OmniVault/
    npm install
    ```
 
-3. **Build the program and generate IDL**
+3. **Set up local environment (optional)**
    ```bash
-   # This builds the program and copies IDL to frontend
+   # Start local Solana test validator with Docker
+   docker-compose up -d solana-test-validator
+   
+   # Or use the frontend environment configuration
+   cd frontend
+   cp .env.example .env
+   # Edit .env to set VITE_USE_LOCAL_VALIDATOR=true for localhost
+   ```
+
+4. **Build the program and generate IDL**
+   ```bash
+   cd solana-program
+   anchor build
+   
+   # Generate TypeScript types for frontend
+   cd ..
    node scripts/generate-idl.js
    ```
 
-4. **Deploy to devnet** 🚀
+5. **Deploy to devnet** 🚀
    ```bash
-   cd ..
    ./scripts/deploy.sh
    ```
 
-5. **Start the frontend**
+6. **Start the frontend**
    ```bash
    cd frontend
    npm run dev
    ```
 
-6. **Access the application** 🌐
+7. **Access the application** 🌐
    Open [http://localhost:5173](http://localhost:5173) in your browser
 
-## 🔧 IDL Integration & Development
+## 🔧 Configuration & Development
 
-### 📋 Automatic IDL Generation
+### 🌐 Network Configuration
 
-The integration between the Solana program and frontend is managed through the IDL (Interface Definition Language):
+The application supports multiple Solana network configurations:
+
+```bash
+# For devnet (default)
+# Leave environment variables commented out
+
+# For local development with Solana validator
+VITE_USE_LOCAL_VALIDATOR=true
+
+# For custom RPC endpoint
+VITE_SOLANA_RPC_ENDPOINT=https://your-custom-rpc.com
+```
+
+### 📋 IDL Integration & Development
+
+The integration between the Solana program and frontend is managed through the IDL:
 
 ```bash
 # Build program and copy IDL to frontend
@@ -207,32 +254,6 @@ node scripts/generate-idl.js
 cd frontend && npm run dev
 ```
 
-### 🛠️ Manual IDL Update
-
-If needed, you can manually update the IDL:
-
-```bash
-cd solana-program
-anchor build
-cd ..
-cp solana-program/target/idl/omnivault.json frontend/src/idl/
-cp solana-program/target/types/omnivault.ts frontend/src/idl/
-```
-
-### 🔧 Service Integration
-
-The frontend service (`frontend/src/services/omnivault.ts`) uses:
-- 📋 **Generated IDL JSON** for program instantiation
-- 🔧 **TypeScript types** for compile-time safety
-- ⚙️ **`accountsPartial`** for flexible account resolution
-
-```typescript
-// Example service usage
-const service = createOmniVaultService(provider);
-await service.initialize();
-await service.createVault(RiskProfile.Moderate);
-```
-
 ## 🎮 Usage Guide
 
 ### 🔥 Getting Started
@@ -242,14 +263,15 @@ await service.createVault(RiskProfile.Moderate);
 3. **🏗️ Create Vault**: Choose a risk profile and create your first vault
 4. **💰 Deposit Funds**: Add SOL or supported tokens to your vault
 5. **📊 Monitor Performance**: Track your yields and performance in the dashboard
+6. **🔄 Cross-Chain Operations**: Query yields and rebalance across chains
 
 ### 🛡️ Risk Profiles
 
-| Profile | Risk Level | Expected APY | Description |
-|---------|------------|--------------|-------------|
-| 🟢 **Conservative** | Low | 6-8% | Stable, low-risk yield farming |
-| 🟡 **Moderate** | Medium | 8-12% | Balanced risk-reward strategies |
-| 🔴 **Aggressive** | High | 12%+ | High-risk, high-reward opportunities |
+| Profile | Risk Level | Expected APY | Target Chains | Description |
+|---------|------------|--------------|---------------|-------------|
+| 🟢 **Conservative** | Low | 6-8% | Ethereum, Arbitrum | Stable, low-risk yield farming |
+| 🟡 **Moderate** | Medium | 8-12% | Multi-chain | Balanced risk-reward strategies |
+| 🔴 **Aggressive** | High | 12%+ | All chains | High-risk, high-reward opportunities |
 
 ### 🌉 Cross-Chain Operations
 
@@ -259,6 +281,7 @@ OmniVault seamlessly handles cross-chain operations through LayerZero V2:
 - **📡 Cross-Chain Messaging**: Real-time communication between blockchain networks
 - **🎛️ Unified Management**: Single interface for managing multi-chain positions
 - **⚡ Gas Optimization**: Efficient cross-chain transaction routing
+- **📊 Yield Monitoring**: Real-time yield tracking across all supported chains
 
 ## 🔧 Smart Contract Implementation
 
@@ -270,36 +293,59 @@ Initialize the main vault store (one-time setup)
 pub fn initialize(ctx: Context<Initialize>) -> Result<()>
 ```
 
-#### `create_vault(risk_profile: RiskProfile)`
-Create a new vault with specified risk profile
+#### `create_vault(risk_profile, min_deposit, target_chains)`
+Create a new vault with specified configuration
 ```rust
-pub fn create_vault(ctx: Context<CreateVault>, risk_profile: RiskProfile) -> Result<()>
+pub fn create_vault(
+    ctx: Context<CreateVault>,
+    risk_profile: RiskProfile,
+    min_deposit: u64,
+    target_chains: Vec<u16>,
+) -> Result<()>
 ```
 
-#### `deposit(amount: u64)`
-Deposit SOL into a vault
+#### `deposit_sol(amount)` / `withdraw_sol(amount)`
+Deposit/withdraw native SOL
+```rust
+pub fn deposit_sol(ctx: Context<DepositSol>, amount: u64) -> Result<()>
+pub fn withdraw_sol(ctx: Context<WithdrawSol>, amount: u64) -> Result<()>
+```
+
+#### `deposit(amount)` / `withdraw(amount)`
+Deposit/withdraw SPL tokens
 ```rust
 pub fn deposit(ctx: Context<Deposit>, amount: u64) -> Result<()>
-```
-
-#### `withdraw(amount: u64)`
-Withdraw SOL from a vault
-```rust
 pub fn withdraw(ctx: Context<Withdraw>, amount: u64) -> Result<()>
 ```
 
 ### LayerZero V2 Instructions
 
-#### `lz_send(dst_eid: u32, message: Vec<u8>)`
-Send cross-chain message via LayerZero
+#### `query_cross_chain_yields(target_chains)`
+Query yield opportunities across chains
 ```rust
-pub fn lz_send(ctx: Context<LzSend>, dst_eid: u32, message: Vec<u8>) -> Result<()>
+pub fn query_cross_chain_yields(
+    ctx: Context<QueryCrossChainYields>,
+    target_chains: Vec<u16>,
+) -> Result<()>
 ```
 
-#### `lz_receive(src_eid: u32, message: Vec<u8>)`
-Receive cross-chain message from LayerZero
+#### `lz_receive(src_chain_id, payload)`
+Receive cross-chain messages from LayerZero
 ```rust
-pub fn lz_receive(ctx: Context<LzReceive>, src_eid: u32, message: Vec<u8>) -> Result<()>
+pub fn lz_receive(
+    ctx: Context<LzReceive>,
+    src_chain_id: u16,
+    payload: Vec<u8>,
+) -> Result<()>
+```
+
+#### `rebalance_vault(target_chain)`
+Manual vault rebalancing
+```rust
+pub fn rebalance_vault(
+    ctx: Context<RebalanceVault>,
+    target_chain: u16,
+) -> Result<()>
 ```
 
 ### Account Structures
@@ -309,9 +355,13 @@ Global program state
 ```rust
 pub struct VaultStore {
     pub authority: Pubkey,
-    pub vault_count: u32,
+    pub total_vaults: u64,
+    pub total_tvl: u64,
     pub fee_rate: u16,
-    pub layerzero_endpoint: Pubkey,
+    pub bump: u8,
+    pub last_global_rebalance: i64,
+    pub emergency_pause: bool,
+    pub supported_chains: Vec<u16>,
 }
 ```
 
@@ -319,11 +369,20 @@ pub struct VaultStore {
 Individual vault instance
 ```rust
 pub struct Vault {
-    pub id: u32,
+    pub id: u64,
     pub owner: Pubkey,
     pub risk_profile: RiskProfile,
     pub total_deposits: u64,
-    pub created_at: i64,
+    pub total_yield: u64,
+    pub min_deposit: u64,
+    pub is_active: bool,
+    pub last_rebalance: i64,
+    pub target_chains: Vec<u16>,
+    pub current_best_chain: u16,
+    pub current_apy: u64,
+    pub rebalance_threshold: u64,
+    pub emergency_exit: bool,
+    pub bump: u8,
 }
 ```
 
@@ -331,10 +390,24 @@ pub struct Vault {
 User's position in a vault
 ```rust
 pub struct UserPosition {
-    pub vault_id: u32,
+    pub vault: Pubkey,
     pub user: Pubkey,
-    pub deposited_amount: u64,
+    pub amount: u64,
+    pub last_deposit: i64,
+    pub last_withdrawal: i64,
+    pub bump: u8,
+}
+```
+
+#### `YieldTracker`
+Cross-chain yield tracking
+```rust
+pub struct YieldTracker {
+    pub vault: Pubkey,
+    pub chain_yields: Vec<ChainYield>,
     pub last_update: i64,
+    pub query_nonce: u64,
+    pub bump: u8,
 }
 ```
 
@@ -357,13 +430,30 @@ OmniVault leverages LayerZero V2's revolutionary omnichain technology:
 - **Avalanche** (Chain ID: 106)
 - **Optimism** (Chain ID: 111)
 
-### 🔗 Cross-Chain Actions
+### 🔗 Cross-Chain Message Types
 ```rust
-#[derive(AnchorSerialize, AnchorDeserialize, Clone)]
 pub enum CrossChainAction {
-    Deposit { amount: u64 },
-    Withdraw { amount: u64 },
-    Rebalance { target_chain: u32, amount: u64 },
+    Rebalance {
+        vault_id: u64,
+        new_allocation: Vec<u8>,
+    },
+    YieldQuery {
+        vault_id: u64,
+        risk_profile: RiskProfile,
+        query_nonce: u64,
+        requested_chains: Vec<u16>,
+    },
+    YieldResponse {
+        vault_id: u64,
+        chain_id: u16,
+        apy: u64,
+        tvl: u64,
+        risk_score: u64,
+        query_nonce: u64,
+    },
+    EmergencyPause {
+        vault_id: u64,
+    },
 }
 ```
 
@@ -376,9 +466,12 @@ pub enum CrossChainAction {
 cd solana-program
 anchor test
 
-# Frontend tests
+# Frontend development server
 cd frontend
-npm test
+npm run dev
+
+# Frontend build
+npm run build
 ```
 
 ### 🏗️ Building for Production
@@ -400,7 +493,17 @@ anchor build --verifiable
 ./scripts/deploy.sh
 
 # Generate TypeScript IDL
-./scripts/generate-idl.js
+node scripts/generate-idl.js
+```
+
+### 🐳 Docker Development
+
+```bash
+# Start local Solana test validator
+docker-compose up -d solana-test-validator
+
+# Build Anchor program in Docker
+docker-compose up anchor-build
 ```
 
 ## 🔒 Security
@@ -410,11 +513,13 @@ anchor build --verifiable
 - **🧪 Comprehensive Testing**: Full test suite coverage
 - **🔐 PDAs**: Program Derived Addresses for enhanced security
 - **✅ Input Validation**: Rigorous validation and error handling
+- **🚫 Emergency Controls**: Emergency pause and resume functionality
 
 ### 🌉 Cross-Chain Security
 - **🔒 LayerZero V2**: Battle-tested security model
 - **🌐 Decentralized Verification**: Multi-party verification system
 - **🔄 Immutable Messaging**: Tamper-proof cross-chain communication
+- **⏰ Nonce Protection**: Replay attack prevention
 
 ## 📈 Roadmap
 
@@ -424,6 +529,9 @@ anchor build --verifiable
 - [x] React frontend with wallet integration
 - [x] Vault management system
 - [x] Risk profile implementation
+- [x] SOL deposit/withdrawal functionality
+- [x] Cross-chain yield querying
+- [x] Real-time event monitoring
 - [x] Devnet deployment
 
 ### Phase 2: Enhanced Features 🚧
@@ -432,6 +540,7 @@ anchor build --verifiable
 - [ ] Mobile-responsive improvements
 - [ ] Advanced analytics and reporting
 - [ ] Performance optimization
+- [ ] Automated rebalancing triggers
 
 ### Phase 3: Ecosystem Expansion 📋
 - [ ] Additional blockchain support
@@ -439,6 +548,7 @@ anchor build --verifiable
 - [ ] DAO governance implementation
 - [ ] Strategic partner integrations
 - [ ] Mainnet deployment
+- [ ] Institutional features
 
 ## 🏅 Hackathon Compliance
 
@@ -454,11 +564,12 @@ anchor build --verifiable
 OmniVault solves the fragmented DeFi landscape by providing a unified yield optimization platform that automatically finds and captures the best opportunities across multiple chains, all through a single Solana-based interface powered by LayerZero V2.
 
 ### 📊 **Technical Achievements**
-- **Program Size**: ~500 lines of Rust code
-- **Frontend Integration**: Complete TypeScript service layer
+- **Program Size**: ~1,000 lines of Rust code with comprehensive functionality
+- **Frontend Integration**: Complete TypeScript service layer with 670+ lines
 - **Cross-Chain Messaging**: Full LayerZero V2 OApp implementation
-- **Account Management**: Sophisticated PDA architecture
-- **Error Handling**: Comprehensive validation and error management
+- **Account Management**: Sophisticated PDA architecture with 4 main account types
+- **Error Handling**: Comprehensive validation with 18 custom error types
+- **Real-time Features**: Event-driven architecture with live updates
 
 ## 🤝 Contributing
 
@@ -470,11 +581,11 @@ OmniVault solves the fragmented DeFi landscape by providing a unified yield opti
 
 ## 📞 Support & Community
 
-- **📚 Documentation**: [Coming Soon]
+- **📚 Documentation**: See frontend README for detailed frontend docs
 - **💬 Discord**: [Join our community]
 - **🐦 Twitter**: [@OmniVault]
 - **📧 Email**: support@omnivault.io
-- **🐛 Issues**: [GitHub Issues](https://github.com/your-repo/issues)
+- **🐛 Issues**: [GitHub Issues](https://github.com/Ge0frey/Omnivault/issues)
 
 ## 📄 License
 
@@ -488,7 +599,7 @@ This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) 
 
 *Pioneering the future of cross-chain yield optimization with LayerZero V2 on Solana*
 
-[![Made with Love](https://img.shields.io/badge/Made%20with-❤️-red?style=for-the-badge)](https://github.com/your-username)
+[![Made with Love](https://img.shields.io/badge/Made%20with-❤️-red?style=for-the-badge)](https://github.com/Ge0frey/Omnivault)
 [![LayerZero](https://img.shields.io/badge/Powered%20by-LayerZero%20V2-blue?style=for-the-badge)](https://layerzero.network/)
 [![Solana](https://img.shields.io/badge/Built%20on-Solana-9945FF?style=for-the-badge&logo=solana&logoColor=white)](https://solana.com/)
 
