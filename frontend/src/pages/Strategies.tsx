@@ -1,12 +1,10 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { 
   ChartBarIcon, 
   CogIcon, 
   PlusIcon,
-  ArrowTrendingUpIcon,
   ShieldCheckIcon,
   BoltIcon,
-  ClockIcon,
   ArrowPathIcon,
   ExclamationTriangleIcon,
   CheckCircleIcon
@@ -65,7 +63,6 @@ export const Strategies = () => {
   const {
     userVaults,
     selectedVault,
-    chainYields,
     isCreatingVault,
     createVault,
     selectVault,
@@ -130,12 +127,8 @@ export const Strategies = () => {
       ? parseFloat(customMinDeposit) * 1e9 
       : template.minDeposit * 1e9;
 
-    const riskProfileObj = {
-      [template.riskProfile]: {}
-    };
-
     try {
-      const result = await createVault(riskProfileObj, minDeposit, template.targetChains);
+      const result = await createVault(template.riskProfile, minDeposit, template.targetChains);
       if (result) {
         setShowCreateModal(false);
         setSelectedTemplate(null);
@@ -145,15 +138,6 @@ export const Strategies = () => {
     } catch (error) {
       console.error('Failed to create strategy:', error);
     }
-  };
-
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2
-    }).format(amount);
   };
 
   const formatAPY = (apy: number) => {

@@ -1,17 +1,14 @@
-import React, { useState, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { 
   ChartBarIcon,
   ArrowTrendingUpIcon,
   ArrowTrendingDownIcon,
   CalendarIcon,
-  GlobeAltIcon,
   CurrencyDollarIcon,
   ShieldCheckIcon,
-  BoltIcon,
   ArrowUpIcon,
   ArrowDownIcon,
   ArrowPathIcon,
-  ExclamationTriangleIcon,
   InformationCircleIcon,
   EyeIcon
 } from '@heroicons/react/24/outline';
@@ -41,7 +38,6 @@ interface ChainAnalytics {
 export const Analytics = () => {
   const {
     userVaults,
-    selectedVault,
     chainYields,
     recentEvents,
     getChainName,
