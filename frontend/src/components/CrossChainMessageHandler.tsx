@@ -162,8 +162,6 @@ export const CrossChainMessageHandler: React.FC<CrossChainMessageHandlerProps> =
     listenersRef.current = [];
   }, []);
 
-
-
   // Handle incoming cross-chain message
   const handleIncomingMessage = useCallback((sourceChain: number, message: CrossChainMessage) => {
     // Filter messages for specific vault if provided
@@ -208,12 +206,6 @@ export const CrossChainMessageHandler: React.FC<CrossChainMessageHandlerProps> =
     setEvents(prev => prev.map(event => 
       event.id === eventId ? { ...event, processed: true } : event
     ));
-  };
-
-  // Clear all events
-  const clearEvents = () => {
-    setEvents([]);
-    setUnreadCount(0);
   };
 
   // Toggle notifications visibility
