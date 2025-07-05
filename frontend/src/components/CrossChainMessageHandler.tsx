@@ -325,7 +325,7 @@ export const CrossChainMessageHandler: React.FC<CrossChainMessageHandlerProps> =
                   )}
                 </button>
                 <button
-                  onClick={clearEvents}
+                  onClick={() => setShowNotifications(false)}
                   className="p-1 rounded text-xs text-gray-400 hover:text-white"
                 >
                   <XMarkIcon className="h-4 w-4" />
