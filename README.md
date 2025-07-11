@@ -535,7 +535,7 @@ docker-compose up anchor-build
 
 ### Phase 2: Enhanced Features 🚧
 - [ ] Advanced yield strategies and algorithms
-- [ ] Support for more SPL tokens
+- [x] Support for more SPL tokens
 - [ ] Mobile-responsive improvements
 - [ ] Advanced analytics and reporting
 - [ ] Performance optimization
