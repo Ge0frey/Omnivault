@@ -53,6 +53,8 @@ export interface UseOmniVaultReturn {
   withdraw: (vault: Vault & { publicKey: PublicKey }, amount: number, mintAddress: PublicKey) => Promise<string | null>;
   depositSol: (vault: Vault & { publicKey: PublicKey }, amount: number) => Promise<string | null>;
   withdrawSol: (vault: Vault & { publicKey: PublicKey }, amount: number) => Promise<string | null>;
+  depositUSDC: (vault: Vault & { publicKey: PublicKey }, amount: number) => Promise<string | null>;
+  withdrawUSDC: (vault: Vault & { publicKey: PublicKey }, amount: number) => Promise<string | null>;
   selectVault: (vault: Vault & { publicKey: PublicKey }) => void;
   refreshData: () => Promise<void>;
   
@@ -503,6 +505,50 @@ export const useOmniVault = (): UseOmniVaultReturn => {
     }
   }, [service, refreshData]);
 
+  // Deposit USDC into a vault
+  const depositUSDC = useCallback(async (vault: Vault & { publicKey: PublicKey }, amount: number): Promise<string | null> => {
+    if (!service) {
+      setError('Service not available');
+      return null;
+    }
+
+    setIsDepositing(true);
+    try {
+      const tx = await service.depositUSDC(vault.publicKey, amount);
+      await refreshData();
+      setError(null);
+      return tx;
+    } catch (err: any) {
+      console.error('Failed to deposit USDC:', err);
+      setError(err.message || 'Failed to deposit USDC');
+      return null;
+    } finally {
+      setIsDepositing(false);
+    }
+  }, [service, refreshData]);
+
+  // Withdraw USDC from a vault
+  const withdrawUSDC = useCallback(async (vault: Vault & { publicKey: PublicKey }, amount: number): Promise<string | null> => {
+    if (!service) {
+      setError('Service not available');
+      return null;
+    }
+
+    setIsWithdrawing(true);
+    try {
+      const tx = await service.withdrawUSDC(vault.publicKey, amount);
+      await refreshData();
+      setError(null);
+      return tx;
+    } catch (err: any) {
+      console.error('Failed to withdraw USDC:', err);
+      setError(err.message || 'Failed to withdraw USDC');
+      return null;
+    } finally {
+      setIsWithdrawing(false);
+    }
+  }, [service, refreshData]);
+
   // Query cross-chain yields
   const queryCrossChainYields = useCallback(async (vaultId: number, targetChains?: number[]): Promise<string | null> => {
     if (!service) {
@@ -748,6 +794,8 @@ export const useOmniVault = (): UseOmniVaultReturn => {
     withdraw,
     depositSol,
     withdrawSol,
+    depositUSDC,
+    withdrawUSDC,
     selectVault,
     refreshData,
     
