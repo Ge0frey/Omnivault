@@ -441,7 +441,6 @@ export class HookBuilder {
     const sortedHooks = [...this.hooks].sort((a, b) => a.priority - b.priority);
 
     // Encode hooks
-    const encoder = new TextEncoder();
     const hookData: number[] = [];
 
     // Add hook count

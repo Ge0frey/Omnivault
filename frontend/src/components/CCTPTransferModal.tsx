@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { useConnection, useWallet } from '@solana/wallet-adapter-react';
-import { PublicKey } from '@solana/web3.js';
 import { BN } from '@coral-xyz/anchor';
 import {
   XMarkIcon,
@@ -13,8 +12,8 @@ import {
   BoltIcon,
   ClockIcon
 } from '@heroicons/react/24/outline';
-import { FastTransferIndicator, TransferSpeed, TransferEstimate, TransferComparison } from './FastTransferIndicator';
-import { CCTP_DOMAINS, DOMAIN_TO_CHAIN_NAME } from '../services/cctp';
+import { TransferSpeed, type TransferEstimate, TransferComparison } from './FastTransferIndicator';
+import { CCTP_DOMAINS } from '../services/cctp';
 import { HookBuilder } from '../services/cctp-hooks';
 
 interface Chain {
@@ -59,8 +58,8 @@ export const CCTPTransferModal: React.FC<CCTPTransferModalProps> = ({
   maxAmount,
   onConfirm,
 }) => {
-  const { publicKey } = useWallet();
-  const { connection } = useConnection();
+  const { } = useWallet();
+  const { } = useConnection();
 
   const [amount, setAmount] = useState<string>('');
   const [sourceChain, setSourceChain] = useState<Chain>(
@@ -69,7 +68,7 @@ export const CCTPTransferModal: React.FC<CCTPTransferModalProps> = ({
   const [destinationChain, setDestinationChain] = useState<Chain>(
     mode === 'deposit' ? SUPPORTED_CHAINS[6] : SUPPORTED_CHAINS[0] // Solana for deposits
   );
-  const [usesFastTransfer, setUsesFastTransfer] = useState(true);
+
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [autoCompound, setAutoCompound] = useState(false);
   const [autoRebalance, setAutoRebalance] = useState(true);

@@ -1,11 +1,11 @@
-import { Connection, PublicKey, Transaction } from '@solana/web3.js';
+import { PublicKey, Transaction } from '@solana/web3.js';
 import { AnchorProvider, BN } from '@coral-xyz/anchor';
-import { CCTPService, CCTP_DOMAINS, CCTPTransferParams, TransferStatus } from './cctp';
-import { LayerZeroService, CrossChainActionType } from './layerzero';
+import { CCTPService, CCTP_DOMAINS, type CCTPTransferParams } from './cctp';
+import { CrossChainActionType } from './layerzero';
 import OfficialLayerZeroService from './layerzero-official';
 import { AttestationMonitor } from './attestation-monitor';
-import { HookBuilder, HookType } from './cctp-hooks';
-import { createOmniVaultService, OmniVaultService, RiskProfile } from './omnivault';
+import { HookBuilder } from './cctp-hooks';
+import { createOmniVaultService, OmniVaultService } from './omnivault';
 
 export enum TransferProtocol {
   CCTP = 'CCTP',
@@ -57,7 +57,6 @@ export class HybridOrchestrator {
   private omnivaultService: OmniVaultService;
   private attestationMonitor: AttestationMonitor;
   private provider: AnchorProvider;
-  private isTestnet: boolean;
   
   // Active transfers tracking
   private activeTransfers: Map<string, CrossChainTransfer> = new Map();
@@ -72,7 +71,6 @@ export class HybridOrchestrator {
     isTestnet: boolean = false
   ) {
     this.provider = provider;
-    this.isTestnet = isTestnet;
     
     // Initialize services
     this.cctpService = new CCTPService(provider, isTestnet);
@@ -232,8 +230,11 @@ export class HybridOrchestrator {
       const vault = await this.omnivaultService.getVault(this.provider.publicKey!, vaultId);
       if (!vault) throw new Error('Vault not found');
       
+      // Get vault PDA
+      const [vaultPda] = this.omnivaultService.getVaultPDA(this.provider.publicKey!, vaultId);
+      
       // Call Solana program to initiate withdrawal
-      const tx = await this.omnivaultService.withdrawSol(vault.publicKey, amount.toNumber());
+      const tx = await this.omnivaultService.withdrawSol(vaultPda, amount.toNumber());
       
       transfer.txHash = tx;
       transfer.status = 'processing';
@@ -256,6 +257,10 @@ export class HybridOrchestrator {
     } else {
       // Fallback to LayerZero for non-USDC or unsupported routes
       const chainId = this.domainToLayerZeroChain(destinationDomain);
+      if (!chainId) {
+        throw new Error(`Unsupported destination domain: ${destinationDomain}`);
+      }
+      
       const message = {
         action: {
           type: CrossChainActionType.Rebalance,
@@ -354,7 +359,7 @@ export class HybridOrchestrator {
     vaultId: number,
     targetChain: string,
     amount: BN,
-    strategy?: RebalanceStrategy
+    _strategy?: RebalanceStrategy
   ): Promise<CrossChainTransfer> {
     console.log(`Rebalancing vault ${vaultId} to ${targetChain}`);
     
@@ -464,8 +469,8 @@ export class HybridOrchestrator {
       CCTP_DOMAINS.SOLANA,
     ];
     
-    return supportedDomains.includes(sourceDomain) && 
-           supportedDomains.includes(destDomain);
+    return supportedDomains.includes(sourceDomain as any) && 
+           supportedDomains.includes(destDomain as any);
   }
 
   /**
@@ -494,8 +499,11 @@ export class HybridOrchestrator {
       throw new Error('Vault not found');
     }
     
+    // Get vault PDA
+    const [vaultPda] = this.omnivaultService.getVaultPDA(this.provider.publicKey!, vaultId);
+    
     const tx = await this.omnivaultService.depositSol(
-      vault.publicKey,
+      vaultPda,
       amount.toNumber()
     );
     
@@ -519,9 +527,9 @@ export class HybridOrchestrator {
    */
   private async completeCCTPDeposit(
     vaultId: number,
-    amount: BN,
-    attestation: string,
-    sourceDomain: number
+    _amount: BN,
+    _attestation: string,
+    _sourceDomain: number
   ): Promise<void> {
     console.log(`Completing CCTP deposit for vault ${vaultId}`);
     
@@ -542,7 +550,7 @@ export class HybridOrchestrator {
     console.log('Processing attestation complete event:', event);
     
     // Update transfer status
-    for (const [id, transfer] of this.activeTransfers) {
+    for (const [, transfer] of this.activeTransfers) {
       if (transfer.attestation === event.messageHash) {
         transfer.status = 'attested';
         transfer.actualTime = Date.now();
@@ -558,7 +566,7 @@ export class HybridOrchestrator {
     console.error('Processing attestation failed event:', event);
     
     // Update transfer status and attempt fallback
-    for (const [id, transfer] of this.activeTransfers) {
+    for (const [, transfer] of this.activeTransfers) {
       if (transfer.attestation === event.messageHash) {
         transfer.status = 'failed';
         
@@ -603,13 +611,15 @@ export class HybridOrchestrator {
       throw new Error('Vault not found');
     }
     
-    return vault.publicKey;
+    // Return the vault PDA
+    const [vaultPda] = this.omnivaultService.getVaultPDA(this.provider.publicKey!, vaultId);
+    return vaultPda;
   }
 
   /**
    * Get optimal protocol address for target chain
    */
-  private async getOptimalProtocolAddress(chain: string): Promise<PublicKey> {
+  private async getOptimalProtocolAddress(_chain: string): Promise<PublicKey> {
     // This would return the actual protocol address on the target chain
     // For now, return a placeholder
     return new PublicKey('11111111111111111111111111111111');
