@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { BN } from '@coral-xyz/anchor';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { 
   CurrencyDollarIcon, 
@@ -11,7 +10,7 @@ import {
   ShieldCheckIcon
 } from '@heroicons/react/24/outline';
 import { useOmniVault } from '../hooks/useOmniVault';
-import { NATIVE_SOL_MINT, USDC_MINT_DEVNET } from '../services/omnivault';
+import { NATIVE_SOL_MINT } from '../services/omnivault';
 import { TransactionSuccess } from '../components/TransactionSuccess';
 import { WalletMultiButton } from '@solana/wallet-adapter-react-ui';
 import { CCTPTransferModal } from '../components/CCTPTransferModal';
@@ -71,7 +70,6 @@ export const Deposit = () => {
     description: string;
   } | null>(null);
   const [showCCTPModal, setShowCCTPModal] = useState(false);
-  const [isProcessing, setIsProcessing] = useState(false);
 
   const handleDeposit = async () => {
     if (!selectedVaultForDeposit || !amount) return;
@@ -565,8 +563,7 @@ export const Deposit = () => {
           onClose={() => setShowCCTPModal(false)}
           mode="deposit"
           vaultId={selectedVaultForDeposit.id.toNumber()}
-          onConfirm={async (amount, sourceChain, destinationChain, usesFastTransfer) => {
-            setIsProcessing(true);
+          onConfirm={async (amount, sourceChain, _destinationChain, usesFastTransfer) => {
             try {
               // Handle cross-chain deposit via CCTP
               const tx = await depositUSDC(selectedVaultForDeposit, amount.toNumber());
@@ -580,8 +577,6 @@ export const Deposit = () => {
               }
             } catch (error) {
               console.error('Cross-chain deposit failed:', error);
-            } finally {
-              setIsProcessing(false);
             }
           }}
         />

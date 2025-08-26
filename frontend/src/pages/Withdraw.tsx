@@ -12,7 +12,7 @@ import {
   CalculatorIcon
 } from '@heroicons/react/24/outline';
 import { useOmniVault } from '../hooks/useOmniVault';
-import { NATIVE_SOL_MINT, USDC_MINT_DEVNET } from '../services/omnivault';
+import { NATIVE_SOL_MINT } from '../services/omnivault';
 import { TransactionSuccess } from '../components/TransactionSuccess';
 import { WalletMultiButton } from '@solana/wallet-adapter-react-ui';
 import { CCTPTransferModal } from '../components/CCTPTransferModal';
@@ -72,7 +72,6 @@ export const Withdraw = () => {
     description: string;
   } | null>(null);
   const [showCCTPModal, setShowCCTPModal] = useState(false);
-  const [isProcessing, setIsProcessing] = useState(false);
 
   const handleWithdraw = async () => {
     if (!selectedVaultForWithdraw || (!amount && withdrawType === 'partial')) return;
@@ -658,8 +657,7 @@ export const Withdraw = () => {
           mode="withdraw"
           vaultId={selectedVaultForWithdraw.id.toNumber()}
           maxAmount={new BN(getAvailableBalance(selectedVaultForWithdraw) * 1e6)} // Convert to USDC decimals
-          onConfirm={async (amount, sourceChain, destinationChain, usesFastTransfer) => {
-            setIsProcessing(true);
+          onConfirm={async (amount, _sourceChain, destinationChain, usesFastTransfer) => {
             try {
               // Handle cross-chain withdrawal via CCTP
               const tx = await withdrawUSDC(selectedVaultForWithdraw, amount.toNumber());
@@ -673,8 +671,6 @@ export const Withdraw = () => {
               }
             } catch (error) {
               console.error('Cross-chain withdrawal failed:', error);
-            } finally {
-              setIsProcessing(false);
             }
           }}
         />
