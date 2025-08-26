@@ -4,11 +4,13 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": "tsc -b && vite build",
-    "lint": "eslint .",
-    "preview": "vite preview"
-  },
+  "dev": "vite",
+  "type-check": "tsc -b --pretty",
+  "lint": "eslint .",
+  "build": "vite build",
+  "build:strict": "tsc --noEmit && vite build",
+  "preview": "vite preview"
+},
   "dependencies": {
     "@coral-xyz/anchor": "^0.31.1",
     "@heroicons/react": "^2.2.0",
