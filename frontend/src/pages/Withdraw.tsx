@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { BN } from '@coral-xyz/anchor';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { 
   ArrowUpIcon, 
@@ -14,6 +15,7 @@ import { useOmniVault } from '../hooks/useOmniVault';
 import { NATIVE_SOL_MINT } from '../services/omnivault';
 import { TransactionSuccess } from '../components/TransactionSuccess';
 import { WalletMultiButton } from '@solana/wallet-adapter-react-ui';
+import { CCTPTransferModal } from '../components/CCTPTransferModal';
 
 interface TokenOption {
   address: string;
@@ -55,6 +57,7 @@ export const Withdraw = () => {
     userVaults, 
     loading,
     withdrawSol,
+    withdrawUSDC,
     error,
     clearError
   } = useOmniVault();
@@ -68,6 +71,7 @@ export const Withdraw = () => {
     title: string;
     description: string;
   } | null>(null);
+  const [showCCTPModal, setShowCCTPModal] = useState(false);
 
   const handleWithdraw = async () => {
     if (!selectedVaultForWithdraw || (!amount && withdrawType === 'partial')) return;
@@ -85,10 +89,13 @@ export const Withdraw = () => {
       let tx;
       if (selectedToken.symbol === 'SOL') {
         tx = await withdrawSol(selectedVaultForWithdraw, amountNum);
+      } else if (selectedToken.symbol === 'USDC') {
+        // Convert USDC amount to smallest unit (6 decimals)
+        const usdcAmount = Math.floor(amountNum * 1e6);
+        tx = await withdrawUSDC(selectedVaultForWithdraw, usdcAmount);
       } else {
-        // For USDC/USDT, we would need to implement the withdraw function with token mint
-        // For now, show a message that token withdrawals are coming soon
-        alert(`${selectedToken.symbol} withdrawals are coming soon! Please use SOL for now.`);
+        // For other tokens
+        alert(`${selectedToken.symbol} withdrawals are coming soon! Please use SOL or USDC for now.`);
         return;
       }
       
@@ -371,6 +378,32 @@ export const Withdraw = () => {
                       </button>
                     ))}
                   </div>
+                  
+                  {/* Cross-chain Option for USDC */}
+                  {selectedToken.symbol === 'USDC' && (
+                    <div className="mt-4 p-4 bg-blue-500/10 border border-blue-500/30 rounded-xl">
+                      <div className="flex items-start space-x-3">
+                        <InformationCircleIcon className="h-5 w-5 text-blue-400 flex-shrink-0 mt-0.5" />
+                        <div className="flex-1">
+                          <p className="text-sm text-blue-300 font-medium">Cross-Chain USDC Withdrawal!</p>
+                          <p className="text-xs text-gray-400 mt-1">
+                            Withdraw USDC to other chains (Ethereum, Arbitrum, Base, etc.) directly from this vault using Circle's CCTP.
+                          </p>
+                          <button
+                            onClick={() => {
+                              if (selectedVaultForWithdraw) {
+                                setShowCCTPModal(true);
+                              }
+                            }}
+                            disabled={!selectedVaultForWithdraw}
+                            className="mt-2 text-xs text-blue-400 hover:text-blue-300 font-medium underline"
+                          >
+                            Use Cross-Chain Withdrawal →
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 {/* Withdrawal Type */}
@@ -615,6 +648,33 @@ export const Withdraw = () => {
           </div>
         </div>
       </div>
+      
+      {/* CCTP Transfer Modal */}
+      {showCCTPModal && selectedVaultForWithdraw && (
+        <CCTPTransferModal
+          isOpen={showCCTPModal}
+          onClose={() => setShowCCTPModal(false)}
+          mode="withdraw"
+          vaultId={selectedVaultForWithdraw.id.toNumber()}
+          maxAmount={new BN(getAvailableBalance(selectedVaultForWithdraw) * 1e6)} // Convert to USDC decimals
+          onConfirm={async (amount, _sourceChain, destinationChain, usesFastTransfer) => {
+            try {
+              // Handle cross-chain withdrawal via CCTP
+              const tx = await withdrawUSDC(selectedVaultForWithdraw, amount.toNumber());
+              if (tx) {
+                setSuccessTransaction({
+                  signature: tx,
+                  title: "Cross-Chain Withdrawal Successful!",
+                  description: `Successfully withdrew ${(amount.toNumber() / 1e6).toFixed(2)} USDC to ${destinationChain.name} from Vault #${selectedVaultForWithdraw.id.toString()}${usesFastTransfer ? ' (Fast Transfer)' : ''}`
+                });
+                setShowCCTPModal(false);
+              }
+            } catch (error) {
+              console.error('Cross-chain withdrawal failed:', error);
+            }
+          }}
+        />
+      )}
     </div>
   );
 };

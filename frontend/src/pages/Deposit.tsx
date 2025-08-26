@@ -13,6 +13,7 @@ import { useOmniVault } from '../hooks/useOmniVault';
 import { NATIVE_SOL_MINT } from '../services/omnivault';
 import { TransactionSuccess } from '../components/TransactionSuccess';
 import { WalletMultiButton } from '@solana/wallet-adapter-react-ui';
+import { CCTPTransferModal } from '../components/CCTPTransferModal';
 
 interface TokenOption {
   address: string;
@@ -55,6 +56,7 @@ export const Deposit = () => {
     userSolBalance,
     loading,
     depositSol,
+    depositUSDC,
     error,
     clearError
   } = useOmniVault();
@@ -67,6 +69,7 @@ export const Deposit = () => {
     title: string;
     description: string;
   } | null>(null);
+  const [showCCTPModal, setShowCCTPModal] = useState(false);
 
   const handleDeposit = async () => {
     if (!selectedVaultForDeposit || !amount) return;
@@ -81,10 +84,13 @@ export const Deposit = () => {
       let tx;
       if (selectedToken.symbol === 'SOL') {
         tx = await depositSol(selectedVaultForDeposit, amountNum);
+      } else if (selectedToken.symbol === 'USDC') {
+        // Convert USDC amount to smallest unit (6 decimals)
+        const usdcAmount = Math.floor(amountNum * 1e6);
+        tx = await depositUSDC(selectedVaultForDeposit, usdcAmount);
       } else {
-        // For USDC/USDT, we would need to implement the deposit function with token mint
-        // For now, show a message that token deposits are coming soon
-        alert(`${selectedToken.symbol} deposits are coming soon! Please use SOL for now.`);
+        // For other tokens
+        alert(`${selectedToken.symbol} deposits are coming soon! Please use SOL or USDC for now.`);
         return;
       }
       
@@ -355,6 +361,32 @@ export const Deposit = () => {
                       </button>
                     ))}
                   </div>
+                  
+                  {/* Cross-chain Option for USDC */}
+                  {selectedToken.symbol === 'USDC' && (
+                    <div className="mt-4 p-4 bg-blue-500/10 border border-blue-500/30 rounded-xl">
+                      <div className="flex items-start space-x-3">
+                        <InformationCircleIcon className="h-5 w-5 text-blue-400 flex-shrink-0 mt-0.5" />
+                        <div className="flex-1">
+                          <p className="text-sm text-blue-300 font-medium">Cross-Chain USDC Available!</p>
+                          <p className="text-xs text-gray-400 mt-1">
+                            Deposit USDC from other chains (Ethereum, Arbitrum, Base, etc.) directly into this vault using Circle's CCTP.
+                          </p>
+                          <button
+                            onClick={() => {
+                              if (selectedVaultForDeposit) {
+                                setShowCCTPModal(true);
+                              }
+                            }}
+                            disabled={!selectedVaultForDeposit}
+                            className="mt-2 text-xs text-blue-400 hover:text-blue-300 font-medium underline"
+                          >
+                            Use Cross-Chain Deposit →
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 {/* Amount Input */}
@@ -523,6 +555,32 @@ export const Deposit = () => {
           </div>
         </div>
       </div>
+      
+      {/* CCTP Transfer Modal */}
+      {showCCTPModal && selectedVaultForDeposit && (
+        <CCTPTransferModal
+          isOpen={showCCTPModal}
+          onClose={() => setShowCCTPModal(false)}
+          mode="deposit"
+          vaultId={selectedVaultForDeposit.id.toNumber()}
+          onConfirm={async (amount, sourceChain, _destinationChain, usesFastTransfer) => {
+            try {
+              // Handle cross-chain deposit via CCTP
+              const tx = await depositUSDC(selectedVaultForDeposit, amount.toNumber());
+              if (tx) {
+                setSuccessTransaction({
+                  signature: tx,
+                  title: "Cross-Chain Deposit Successful!",
+                  description: `Successfully deposited ${(amount.toNumber() / 1e6).toFixed(2)} USDC from ${sourceChain.name} to Vault #${selectedVaultForDeposit.id.toString()}${usesFastTransfer ? ' (Fast Transfer)' : ''}`
+                });
+                setShowCCTPModal(false);
+              }
+            } catch (error) {
+              console.error('Cross-chain deposit failed:', error);
+            }
+          }}
+        />
+      )}
     </div>
   );
 };
