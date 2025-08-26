@@ -414,6 +414,34 @@ export class OmniVaultService {
     }
   }
 
+  // Deposit USDC into a vault
+  async depositUSDC(vault: PublicKey, amount: number): Promise<string> {
+    const user = this.provider.wallet.publicKey;
+    
+    if (!user) {
+      throw new Error('Wallet not connected');
+    }
+
+    // USDC mint address on Solana devnet
+    const USDC_MINT = new PublicKey('4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU'); // devnet USDC
+    
+    return this.deposit(vault, amount, USDC_MINT);
+  }
+
+  // Withdraw USDC from a vault
+  async withdrawUSDC(vault: PublicKey, amount: number): Promise<string> {
+    const user = this.provider.wallet.publicKey;
+    
+    if (!user) {
+      throw new Error('Wallet not connected');
+    }
+
+    // USDC mint address on Solana devnet
+    const USDC_MINT = new PublicKey('4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU'); // devnet USDC
+    
+    return this.withdraw(vault, amount, USDC_MINT);
+  }
+
   // Withdraw tokens from a vault
   async withdraw(vault: PublicKey, amount: number, mintAddress: PublicKey): Promise<string> {
     const user = this.provider.wallet.publicKey;
@@ -1049,6 +1077,10 @@ export class OmniVaultService {
 }
 
 // Export a factory function to create the service
+// Export USDC mint address for use in other files
+export const USDC_MINT_DEVNET = new PublicKey('4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU');
+export const USDC_MINT_MAINNET = new PublicKey('EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v');
+
 export const createOmniVaultService = (provider: AnchorProvider): OmniVaultService => {
   return new OmniVaultService(provider);
 }; 
