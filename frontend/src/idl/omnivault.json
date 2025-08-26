@@ -266,6 +266,101 @@
       ]
     },
     {
+      "name": "deposit_usdc_via_cctp",
+      "docs": [
+        "Deposit USDC via CCTP from another chain"
+      ],
+      "discriminator": [
+        130,
+        98,
+        173,
+        63,
+        177,
+        223,
+        129,
+        238
+      ],
+      "accounts": [
+        {
+          "name": "vault",
+          "writable": true
+        },
+        {
+          "name": "user_position",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  111,
+                  115,
+                  105,
+                  116,
+                  105,
+                  111,
+                  110
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "vault"
+              },
+              {
+                "kind": "account",
+                "path": "user"
+              }
+            ]
+          }
+        },
+        {
+          "name": "vault_store"
+        },
+        {
+          "name": "cctp_config"
+        },
+        {
+          "name": "user",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "usdc_mint"
+        },
+        {
+          "name": "user_usdc_account",
+          "writable": true
+        },
+        {
+          "name": "vault_usdc_account",
+          "writable": true
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "amount",
+          "type": "u64"
+        },
+        {
+          "name": "source_domain",
+          "type": "u32"
+        },
+        {
+          "name": "attestation",
+          "type": "bytes"
+        }
+      ]
+    },
+    {
       "name": "emergency_pause",
       "docs": [
         "Emergency pause system (admin only)"
@@ -294,6 +389,47 @@
         }
       ],
       "args": []
+    },
+    {
+      "name": "handle_cctp_hook",
+      "docs": [
+        "Process incoming CCTP hook for automated actions"
+      ],
+      "discriminator": [
+        138,
+        220,
+        192,
+        245,
+        200,
+        202,
+        90,
+        220
+      ],
+      "accounts": [
+        {
+          "name": "vault",
+          "writable": true
+        },
+        {
+          "name": "hook_registry"
+        },
+        {
+          "name": "vault_store"
+        },
+        {
+          "name": "message_transmitter"
+        },
+        {
+          "name": "payer",
+          "signer": true
+        }
+      ],
+      "args": [
+        {
+          "name": "hook_data",
+          "type": "bytes"
+        }
+      ]
     },
     {
       "name": "initialize",
@@ -439,6 +575,45 @@
       ]
     },
     {
+      "name": "process_cctp_attestation",
+      "docs": [
+        "Process Circle attestation for incoming CCTP transfer"
+      ],
+      "discriminator": [
+        213,
+        248,
+        77,
+        57,
+        195,
+        73,
+        86,
+        18
+      ],
+      "accounts": [
+        {
+          "name": "cctp_transfer_tracker",
+          "writable": true
+        },
+        {
+          "name": "message_transmitter"
+        },
+        {
+          "name": "payer",
+          "signer": true
+        }
+      ],
+      "args": [
+        {
+          "name": "message_hash",
+          "type": "bytes"
+        },
+        {
+          "name": "attestation",
+          "type": "bytes"
+        }
+      ]
+    },
+    {
       "name": "query_cross_chain_yields",
       "docs": [
         "Send cross-chain yield query via LayerZero"
@@ -518,6 +693,55 @@
         {
           "name": "target_chain",
           "type": "u16"
+        }
+      ]
+    },
+    {
+      "name": "rebalance_with_cctp",
+      "docs": [
+        "Rebalance vault using CCTP Fast Transfer"
+      ],
+      "discriminator": [
+        46,
+        103,
+        123,
+        191,
+        127,
+        184,
+        18,
+        50
+      ],
+      "accounts": [
+        {
+          "name": "vault",
+          "writable": true
+        },
+        {
+          "name": "yield_tracker",
+          "writable": true
+        },
+        {
+          "name": "vault_store"
+        },
+        {
+          "name": "cctp_config"
+        },
+        {
+          "name": "authority",
+          "signer": true
+        },
+        {
+          "name": "token_messenger"
+        }
+      ],
+      "args": [
+        {
+          "name": "target_domain",
+          "type": "u32"
+        },
+        {
+          "name": "amount",
+          "type": "u64"
         }
       ]
     },
@@ -699,9 +923,117 @@
           "type": "u64"
         }
       ]
+    },
+    {
+      "name": "withdraw_usdc_via_cctp",
+      "docs": [
+        "Withdraw USDC via CCTP to another chain"
+      ],
+      "discriminator": [
+        209,
+        221,
+        119,
+        190,
+        20,
+        120,
+        58,
+        166
+      ],
+      "accounts": [
+        {
+          "name": "vault",
+          "writable": true
+        },
+        {
+          "name": "user_position",
+          "writable": true
+        },
+        {
+          "name": "vault_store"
+        },
+        {
+          "name": "cctp_config"
+        },
+        {
+          "name": "user",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "usdc_mint"
+        },
+        {
+          "name": "user_usdc_account",
+          "writable": true
+        },
+        {
+          "name": "vault_usdc_account",
+          "writable": true
+        },
+        {
+          "name": "token_messenger"
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        }
+      ],
+      "args": [
+        {
+          "name": "amount",
+          "type": "u64"
+        },
+        {
+          "name": "destination_domain",
+          "type": "u32"
+        },
+        {
+          "name": "destination_address",
+          "type": "bytes"
+        }
+      ]
     }
   ],
   "accounts": [
+    {
+      "name": "CCTPConfig",
+      "discriminator": [
+        190,
+        206,
+        164,
+        230,
+        32,
+        209,
+        225,
+        54
+      ]
+    },
+    {
+      "name": "CCTPTransferTracker",
+      "discriminator": [
+        37,
+        116,
+        13,
+        243,
+        145,
+        145,
+        200,
+        163
+      ]
+    },
+    {
+      "name": "HookRegistry",
+      "discriminator": [
+        152,
+        94,
+        230,
+        248,
+        10,
+        91,
+        132,
+        157
+      ]
+    },
     {
       "name": "UserPosition",
       "discriminator": [
@@ -756,6 +1088,71 @@
     }
   ],
   "events": [
+    {
+      "name": "CCTPAttestationProcessed",
+      "discriminator": [
+        4,
+        93,
+        183,
+        106,
+        40,
+        117,
+        5,
+        185
+      ]
+    },
+    {
+      "name": "CCTPDepositMade",
+      "discriminator": [
+        214,
+        213,
+        216,
+        107,
+        116,
+        19,
+        168,
+        126
+      ]
+    },
+    {
+      "name": "CCTPHookExecuted",
+      "discriminator": [
+        186,
+        104,
+        145,
+        45,
+        195,
+        250,
+        20,
+        95
+      ]
+    },
+    {
+      "name": "CCTPRebalanceExecuted",
+      "discriminator": [
+        122,
+        149,
+        216,
+        41,
+        118,
+        126,
+        186,
+        53
+      ]
+    },
+    {
+      "name": "CCTPWithdrawalMade",
+      "discriminator": [
+        9,
+        202,
+        220,
+        247,
+        184,
+        192,
+        173,
+        42
+      ]
+    },
     {
       "name": "DepositMade",
       "discriminator": [
@@ -1003,9 +1400,272 @@
       "code": 6017,
       "name": "VaultEmergencyExit",
       "msg": "Vault emergency exit"
+    },
+    {
+      "code": 6018,
+      "name": "InvalidAttestation",
+      "msg": "Invalid attestation"
+    },
+    {
+      "code": 6019,
+      "name": "NoYieldImprovement",
+      "msg": "No yield improvement"
+    },
+    {
+      "code": 6020,
+      "name": "InvalidHookData",
+      "msg": "Invalid hook data"
+    },
+    {
+      "code": 6021,
+      "name": "UnsupportedHookAction",
+      "msg": "Unsupported hook action"
+    },
+    {
+      "code": 6022,
+      "name": "SystemResumed",
+      "msg": "System already resumed"
+    },
+    {
+      "code": 6023,
+      "name": "CCTPTransferFailed",
+      "msg": "CCTP transfer failed"
+    },
+    {
+      "code": 6024,
+      "name": "FastTransferNotEligible",
+      "msg": "Fast transfer not eligible"
+    },
+    {
+      "code": 6025,
+      "name": "DomainNotSupported",
+      "msg": "Domain not supported"
     }
   ],
   "types": [
+    {
+      "name": "CCTPAttestationProcessed",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "message_hash",
+            "type": "bytes"
+          },
+          {
+            "name": "timestamp",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "CCTPConfig",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "authority",
+            "type": "pubkey"
+          },
+          {
+            "name": "token_messenger",
+            "type": "pubkey"
+          },
+          {
+            "name": "message_transmitter",
+            "type": "pubkey"
+          },
+          {
+            "name": "usdc_mint",
+            "type": "pubkey"
+          },
+          {
+            "name": "fee_rate",
+            "type": "u16"
+          },
+          {
+            "name": "fast_transfer_enabled",
+            "type": "bool"
+          },
+          {
+            "name": "max_fast_transfer_amount",
+            "type": "u64"
+          },
+          {
+            "name": "supported_domains",
+            "type": {
+              "vec": "u32"
+            }
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "CCTPDepositMade",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "vault_id",
+            "type": "u64"
+          },
+          {
+            "name": "user",
+            "type": "pubkey"
+          },
+          {
+            "name": "amount",
+            "type": "u64"
+          },
+          {
+            "name": "source_domain",
+            "type": "u32"
+          },
+          {
+            "name": "new_total",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "CCTPHookExecuted",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "vault_id",
+            "type": "u64"
+          },
+          {
+            "name": "action_type",
+            "type": "u8"
+          },
+          {
+            "name": "timestamp",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "CCTPRebalanceExecuted",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "vault_id",
+            "type": "u64"
+          },
+          {
+            "name": "amount",
+            "type": "u64"
+          },
+          {
+            "name": "from_chain",
+            "type": "u16"
+          },
+          {
+            "name": "to_domain",
+            "type": "u32"
+          },
+          {
+            "name": "yield_improvement",
+            "type": "u64"
+          },
+          {
+            "name": "is_fast_transfer",
+            "type": "bool"
+          }
+        ]
+      }
+    },
+    {
+      "name": "CCTPTransferTracker",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "message_hash",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "source_domain",
+            "type": "u32"
+          },
+          {
+            "name": "destination_domain",
+            "type": "u32"
+          },
+          {
+            "name": "amount",
+            "type": "u64"
+          },
+          {
+            "name": "vault_id",
+            "type": "u64"
+          },
+          {
+            "name": "user",
+            "type": "pubkey"
+          },
+          {
+            "name": "attestation_received",
+            "type": "bool"
+          },
+          {
+            "name": "attestation_timestamp",
+            "type": "i64"
+          },
+          {
+            "name": "transfer_completed",
+            "type": "bool"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "CCTPWithdrawalMade",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "vault_id",
+            "type": "u64"
+          },
+          {
+            "name": "user",
+            "type": "pubkey"
+          },
+          {
+            "name": "amount",
+            "type": "u64"
+          },
+          {
+            "name": "fee",
+            "type": "u64"
+          },
+          {
+            "name": "destination_domain",
+            "type": "u32"
+          }
+        ]
+      }
+    },
     {
       "name": "ChainYield",
       "type": {
@@ -1070,6 +1730,70 @@
           {
             "name": "triggered_by_chain",
             "type": "u16"
+          }
+        ]
+      }
+    },
+    {
+      "name": "HookAction",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "action_type",
+            "type": "u8"
+          },
+          {
+            "name": "enabled",
+            "type": "bool"
+          },
+          {
+            "name": "min_amount",
+            "type": "u64"
+          },
+          {
+            "name": "target_chain",
+            "type": {
+              "option": "u16"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "HookRegistry",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "authority",
+            "type": "pubkey"
+          },
+          {
+            "name": "vault",
+            "type": "pubkey"
+          },
+          {
+            "name": "allowed_actions",
+            "type": {
+              "vec": {
+                "defined": {
+                  "name": "HookAction"
+                }
+              }
+            }
+          },
+          {
+            "name": "auto_compound",
+            "type": "bool"
+          },
+          {
+            "name": "auto_rebalance",
+            "type": "bool"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
           }
         ]
       }

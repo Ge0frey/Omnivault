@@ -272,6 +272,101 @@ export type Omnivault = {
       ]
     },
     {
+      "name": "depositUsdcViaCctp",
+      "docs": [
+        "Deposit USDC via CCTP from another chain"
+      ],
+      "discriminator": [
+        130,
+        98,
+        173,
+        63,
+        177,
+        223,
+        129,
+        238
+      ],
+      "accounts": [
+        {
+          "name": "vault",
+          "writable": true
+        },
+        {
+          "name": "userPosition",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  111,
+                  115,
+                  105,
+                  116,
+                  105,
+                  111,
+                  110
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "vault"
+              },
+              {
+                "kind": "account",
+                "path": "user"
+              }
+            ]
+          }
+        },
+        {
+          "name": "vaultStore"
+        },
+        {
+          "name": "cctpConfig"
+        },
+        {
+          "name": "user",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "usdcMint"
+        },
+        {
+          "name": "userUsdcAccount",
+          "writable": true
+        },
+        {
+          "name": "vaultUsdcAccount",
+          "writable": true
+        },
+        {
+          "name": "tokenProgram",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        },
+        {
+          "name": "systemProgram",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "amount",
+          "type": "u64"
+        },
+        {
+          "name": "sourceDomain",
+          "type": "u32"
+        },
+        {
+          "name": "attestation",
+          "type": "bytes"
+        }
+      ]
+    },
+    {
       "name": "emergencyPause",
       "docs": [
         "Emergency pause system (admin only)"
@@ -300,6 +395,47 @@ export type Omnivault = {
         }
       ],
       "args": []
+    },
+    {
+      "name": "handleCctpHook",
+      "docs": [
+        "Process incoming CCTP hook for automated actions"
+      ],
+      "discriminator": [
+        138,
+        220,
+        192,
+        245,
+        200,
+        202,
+        90,
+        220
+      ],
+      "accounts": [
+        {
+          "name": "vault",
+          "writable": true
+        },
+        {
+          "name": "hookRegistry"
+        },
+        {
+          "name": "vaultStore"
+        },
+        {
+          "name": "messageTransmitter"
+        },
+        {
+          "name": "payer",
+          "signer": true
+        }
+      ],
+      "args": [
+        {
+          "name": "hookData",
+          "type": "bytes"
+        }
+      ]
     },
     {
       "name": "initialize",
@@ -445,6 +581,45 @@ export type Omnivault = {
       ]
     },
     {
+      "name": "processCctpAttestation",
+      "docs": [
+        "Process Circle attestation for incoming CCTP transfer"
+      ],
+      "discriminator": [
+        213,
+        248,
+        77,
+        57,
+        195,
+        73,
+        86,
+        18
+      ],
+      "accounts": [
+        {
+          "name": "cctpTransferTracker",
+          "writable": true
+        },
+        {
+          "name": "messageTransmitter"
+        },
+        {
+          "name": "payer",
+          "signer": true
+        }
+      ],
+      "args": [
+        {
+          "name": "messageHash",
+          "type": "bytes"
+        },
+        {
+          "name": "attestation",
+          "type": "bytes"
+        }
+      ]
+    },
+    {
       "name": "queryCrossChainYields",
       "docs": [
         "Send cross-chain yield query via LayerZero"
@@ -524,6 +699,55 @@ export type Omnivault = {
         {
           "name": "targetChain",
           "type": "u16"
+        }
+      ]
+    },
+    {
+      "name": "rebalanceWithCctp",
+      "docs": [
+        "Rebalance vault using CCTP Fast Transfer"
+      ],
+      "discriminator": [
+        46,
+        103,
+        123,
+        191,
+        127,
+        184,
+        18,
+        50
+      ],
+      "accounts": [
+        {
+          "name": "vault",
+          "writable": true
+        },
+        {
+          "name": "yieldTracker",
+          "writable": true
+        },
+        {
+          "name": "vaultStore"
+        },
+        {
+          "name": "cctpConfig"
+        },
+        {
+          "name": "authority",
+          "signer": true
+        },
+        {
+          "name": "tokenMessenger"
+        }
+      ],
+      "args": [
+        {
+          "name": "targetDomain",
+          "type": "u32"
+        },
+        {
+          "name": "amount",
+          "type": "u64"
         }
       ]
     },
@@ -705,9 +929,117 @@ export type Omnivault = {
           "type": "u64"
         }
       ]
+    },
+    {
+      "name": "withdrawUsdcViaCctp",
+      "docs": [
+        "Withdraw USDC via CCTP to another chain"
+      ],
+      "discriminator": [
+        209,
+        221,
+        119,
+        190,
+        20,
+        120,
+        58,
+        166
+      ],
+      "accounts": [
+        {
+          "name": "vault",
+          "writable": true
+        },
+        {
+          "name": "userPosition",
+          "writable": true
+        },
+        {
+          "name": "vaultStore"
+        },
+        {
+          "name": "cctpConfig"
+        },
+        {
+          "name": "user",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "usdcMint"
+        },
+        {
+          "name": "userUsdcAccount",
+          "writable": true
+        },
+        {
+          "name": "vaultUsdcAccount",
+          "writable": true
+        },
+        {
+          "name": "tokenMessenger"
+        },
+        {
+          "name": "tokenProgram",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        }
+      ],
+      "args": [
+        {
+          "name": "amount",
+          "type": "u64"
+        },
+        {
+          "name": "destinationDomain",
+          "type": "u32"
+        },
+        {
+          "name": "destinationAddress",
+          "type": "bytes"
+        }
+      ]
     }
   ],
   "accounts": [
+    {
+      "name": "cctpConfig",
+      "discriminator": [
+        190,
+        206,
+        164,
+        230,
+        32,
+        209,
+        225,
+        54
+      ]
+    },
+    {
+      "name": "cctpTransferTracker",
+      "discriminator": [
+        37,
+        116,
+        13,
+        243,
+        145,
+        145,
+        200,
+        163
+      ]
+    },
+    {
+      "name": "hookRegistry",
+      "discriminator": [
+        152,
+        94,
+        230,
+        248,
+        10,
+        91,
+        132,
+        157
+      ]
+    },
     {
       "name": "userPosition",
       "discriminator": [
@@ -762,6 +1094,71 @@ export type Omnivault = {
     }
   ],
   "events": [
+    {
+      "name": "cctpAttestationProcessed",
+      "discriminator": [
+        4,
+        93,
+        183,
+        106,
+        40,
+        117,
+        5,
+        185
+      ]
+    },
+    {
+      "name": "cctpDepositMade",
+      "discriminator": [
+        214,
+        213,
+        216,
+        107,
+        116,
+        19,
+        168,
+        126
+      ]
+    },
+    {
+      "name": "cctpHookExecuted",
+      "discriminator": [
+        186,
+        104,
+        145,
+        45,
+        195,
+        250,
+        20,
+        95
+      ]
+    },
+    {
+      "name": "cctpRebalanceExecuted",
+      "discriminator": [
+        122,
+        149,
+        216,
+        41,
+        118,
+        126,
+        186,
+        53
+      ]
+    },
+    {
+      "name": "cctpWithdrawalMade",
+      "discriminator": [
+        9,
+        202,
+        220,
+        247,
+        184,
+        192,
+        173,
+        42
+      ]
+    },
     {
       "name": "depositMade",
       "discriminator": [
@@ -1009,9 +1406,272 @@ export type Omnivault = {
       "code": 6017,
       "name": "vaultEmergencyExit",
       "msg": "Vault emergency exit"
+    },
+    {
+      "code": 6018,
+      "name": "invalidAttestation",
+      "msg": "Invalid attestation"
+    },
+    {
+      "code": 6019,
+      "name": "noYieldImprovement",
+      "msg": "No yield improvement"
+    },
+    {
+      "code": 6020,
+      "name": "invalidHookData",
+      "msg": "Invalid hook data"
+    },
+    {
+      "code": 6021,
+      "name": "unsupportedHookAction",
+      "msg": "Unsupported hook action"
+    },
+    {
+      "code": 6022,
+      "name": "systemResumed",
+      "msg": "System already resumed"
+    },
+    {
+      "code": 6023,
+      "name": "cctpTransferFailed",
+      "msg": "CCTP transfer failed"
+    },
+    {
+      "code": 6024,
+      "name": "fastTransferNotEligible",
+      "msg": "Fast transfer not eligible"
+    },
+    {
+      "code": 6025,
+      "name": "domainNotSupported",
+      "msg": "Domain not supported"
     }
   ],
   "types": [
+    {
+      "name": "cctpAttestationProcessed",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "messageHash",
+            "type": "bytes"
+          },
+          {
+            "name": "timestamp",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "cctpConfig",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "authority",
+            "type": "pubkey"
+          },
+          {
+            "name": "tokenMessenger",
+            "type": "pubkey"
+          },
+          {
+            "name": "messageTransmitter",
+            "type": "pubkey"
+          },
+          {
+            "name": "usdcMint",
+            "type": "pubkey"
+          },
+          {
+            "name": "feeRate",
+            "type": "u16"
+          },
+          {
+            "name": "fastTransferEnabled",
+            "type": "bool"
+          },
+          {
+            "name": "maxFastTransferAmount",
+            "type": "u64"
+          },
+          {
+            "name": "supportedDomains",
+            "type": {
+              "vec": "u32"
+            }
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "cctpDepositMade",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "vaultId",
+            "type": "u64"
+          },
+          {
+            "name": "user",
+            "type": "pubkey"
+          },
+          {
+            "name": "amount",
+            "type": "u64"
+          },
+          {
+            "name": "sourceDomain",
+            "type": "u32"
+          },
+          {
+            "name": "newTotal",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "cctpHookExecuted",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "vaultId",
+            "type": "u64"
+          },
+          {
+            "name": "actionType",
+            "type": "u8"
+          },
+          {
+            "name": "timestamp",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "cctpRebalanceExecuted",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "vaultId",
+            "type": "u64"
+          },
+          {
+            "name": "amount",
+            "type": "u64"
+          },
+          {
+            "name": "fromChain",
+            "type": "u16"
+          },
+          {
+            "name": "toDomain",
+            "type": "u32"
+          },
+          {
+            "name": "yieldImprovement",
+            "type": "u64"
+          },
+          {
+            "name": "isFastTransfer",
+            "type": "bool"
+          }
+        ]
+      }
+    },
+    {
+      "name": "cctpTransferTracker",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "messageHash",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "sourceDomain",
+            "type": "u32"
+          },
+          {
+            "name": "destinationDomain",
+            "type": "u32"
+          },
+          {
+            "name": "amount",
+            "type": "u64"
+          },
+          {
+            "name": "vaultId",
+            "type": "u64"
+          },
+          {
+            "name": "user",
+            "type": "pubkey"
+          },
+          {
+            "name": "attestationReceived",
+            "type": "bool"
+          },
+          {
+            "name": "attestationTimestamp",
+            "type": "i64"
+          },
+          {
+            "name": "transferCompleted",
+            "type": "bool"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "cctpWithdrawalMade",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "vaultId",
+            "type": "u64"
+          },
+          {
+            "name": "user",
+            "type": "pubkey"
+          },
+          {
+            "name": "amount",
+            "type": "u64"
+          },
+          {
+            "name": "fee",
+            "type": "u64"
+          },
+          {
+            "name": "destinationDomain",
+            "type": "u32"
+          }
+        ]
+      }
+    },
     {
       "name": "chainYield",
       "type": {
@@ -1076,6 +1736,70 @@ export type Omnivault = {
           {
             "name": "triggeredByChain",
             "type": "u16"
+          }
+        ]
+      }
+    },
+    {
+      "name": "hookAction",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "actionType",
+            "type": "u8"
+          },
+          {
+            "name": "enabled",
+            "type": "bool"
+          },
+          {
+            "name": "minAmount",
+            "type": "u64"
+          },
+          {
+            "name": "targetChain",
+            "type": {
+              "option": "u16"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "hookRegistry",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "authority",
+            "type": "pubkey"
+          },
+          {
+            "name": "vault",
+            "type": "pubkey"
+          },
+          {
+            "name": "allowedActions",
+            "type": {
+              "vec": {
+                "defined": {
+                  "name": "hookAction"
+                }
+              }
+            }
+          },
+          {
+            "name": "autoCompound",
+            "type": "bool"
+          },
+          {
+            "name": "autoRebalance",
+            "type": "bool"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
           }
         ]
       }

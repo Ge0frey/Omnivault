@@ -10,7 +10,7 @@ const { execSync } = require('child_process');
 
 try {
   console.log('📦 Building Anchor program...');
-  execSync('cd solana-program && anchor build', { stdio: 'inherit' });
+  execSync('cd ../solana-program && anchor build', { stdio: 'inherit' });
   
   console.log('📋 Copying IDL files to frontend...');
   
