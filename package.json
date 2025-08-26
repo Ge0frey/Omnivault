@@ -1,0 +1,13 @@
+{
+  "name": "omnivault-monorepo",
+  "private": true,
+  "description": "OmniVault: Cross-Chain Yield Optimizer",
+  "scripts": {
+    "frontend:dev": "cd frontend && npm run dev",
+    "frontend:build": "cd frontend && npm run build",
+    "frontend:preview": "cd frontend && npm run preview",
+    "solana:build": "cd solana-program && anchor build",
+    "solana:test": "cd solana-program && anchor test"
+  },
+  "devDependencies": {}
+}

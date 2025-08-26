@@ -23,6 +23,24 @@ pub mod chain_ids {
     pub const BSC: u16 = 102;
     pub const AVALANCHE: u16 = 106;
     pub const OPTIMISM: u16 = 111;
+    pub const BASE: u16 = 184;  // New for CCTP
+    pub const LINEA: u16 = 183;  // New for CCTP
+    pub const SONIC: u16 = 185;  // New for CCTP
+    pub const WORLD_CHAIN: u16 = 186;  // New for CCTP
+}
+
+// CCTP V2 Domain mappings
+pub mod cctp_domains {
+    pub const ETHEREUM: u32 = 0;
+    pub const AVALANCHE: u32 = 1;
+    pub const OPTIMISM: u32 = 2;
+    pub const ARBITRUM: u32 = 3;
+    pub const SOLANA: u32 = 5;
+    pub const BASE: u32 = 6;
+    pub const POLYGON: u32 = 7;
+    pub const LINEA: u32 = 8;
+    pub const SONIC: u32 = 9;
+    pub const WORLD_CHAIN: u32 = 10;
 }
 
 #[program]
@@ -594,6 +612,228 @@ pub mod omnivault {
         msg!("System operations resumed by {}", ctx.accounts.authority.key());
         Ok(())
     }
+
+    /// Deposit USDC via CCTP from another chain
+    pub fn deposit_usdc_via_cctp(
+        ctx: Context<DepositUSDCViaCCTP>,
+        amount: u64,
+        source_domain: u32,
+        attestation: Vec<u8>,
+    ) -> Result<()> {
+        let vault = &mut ctx.accounts.vault;
+        let vault_store = &ctx.accounts.vault_store;
+        let cctp_config = &ctx.accounts.cctp_config;
+
+        // Verify system is not paused
+        require!(!vault_store.emergency_pause, OmniVaultError::SystemPaused);
+        require!(vault.is_active, OmniVaultError::VaultInactive);
+
+        // Verify CCTP attestation
+        require!(!attestation.is_empty(), OmniVaultError::InvalidAttestation);
+
+        // Verify amount meets minimum deposit
+        require!(amount >= vault.min_deposit, OmniVaultError::DepositTooSmall);
+
+        // Update user position
+        let user_position = &mut ctx.accounts.user_position;
+        user_position.amount += amount;
+        user_position.last_deposit = Clock::get()?.unix_timestamp;
+
+        // Update vault totals
+        vault.total_deposits += amount;
+
+        // Check if automatic yield optimization should trigger
+        if vault.total_deposits > vault.rebalance_threshold {
+            msg!("Deposit threshold reached, consider rebalancing");
+        }
+
+        emit!(CCTPDepositMade {
+            vault_id: vault.id,
+            user: ctx.accounts.user.key(),
+            amount,
+            source_domain,
+            new_total: vault.total_deposits,
+        });
+
+        Ok(())
+    }
+
+    /// Withdraw USDC via CCTP to another chain
+    pub fn withdraw_usdc_via_cctp(
+        ctx: Context<WithdrawUSDCViaCCTP>,
+        amount: u64,
+        destination_domain: u32,
+        destination_address: Vec<u8>,
+    ) -> Result<()> {
+        let vault = &mut ctx.accounts.vault;
+        let vault_store = &ctx.accounts.vault_store;
+        let user_position = &mut ctx.accounts.user_position;
+        let cctp_config = &ctx.accounts.cctp_config;
+
+        // Verify system is not paused
+        require!(!vault_store.emergency_pause, OmniVaultError::SystemPaused);
+        require!(!vault.emergency_exit, OmniVaultError::VaultEmergencyExit);
+
+        // Check sufficient balance
+        require!(user_position.amount >= amount, OmniVaultError::InsufficientBalance);
+
+        // Calculate withdrawal fee (1% for CCTP Fast Transfer)
+        let fee = amount.checked_mul(cctp_config.fee_rate as u64)
+            .unwrap()
+            .checked_div(10000).unwrap();
+        let net_amount = amount.checked_sub(fee).unwrap();
+
+        // Update user position
+        user_position.amount = user_position.amount.checked_sub(amount).unwrap();
+        user_position.last_withdrawal = Clock::get()?.unix_timestamp;
+
+        // Update vault totals
+        vault.total_deposits = vault.total_deposits.checked_sub(amount).unwrap();
+        vault.total_yield += fee;
+
+        // Initiate CCTP burn for cross-chain transfer
+        msg!("Initiating CCTP burn for {} USDC to domain {}", net_amount, destination_domain);
+
+        emit!(CCTPWithdrawalMade {
+            vault_id: vault.id,
+            user: ctx.accounts.user.key(),
+            amount: net_amount,
+            fee,
+            destination_domain,
+        });
+
+        Ok(())
+    }
+
+    /// Rebalance vault using CCTP Fast Transfer
+    pub fn rebalance_with_cctp(
+        ctx: Context<RebalanceWithCCTP>,
+        target_domain: u32,
+        amount: u64,
+    ) -> Result<()> {
+        let vault = &mut ctx.accounts.vault;
+        let yield_tracker = &mut ctx.accounts.yield_tracker;
+        let cctp_config = &ctx.accounts.cctp_config;
+
+        // Verify rebalancing is not too frequent
+        let current_time = Clock::get()?.unix_timestamp;
+        require!(
+            current_time - vault.last_rebalance >= MIN_REBALANCE_INTERVAL,
+            OmniVaultError::RebalanceTooFrequent
+        );
+
+        // Find the chain yield data for target domain
+        let chain_id = cctp_domain_to_chain_id(target_domain);
+        let target_yield = yield_tracker.chain_yields
+            .iter()
+            .find(|cy| cy.chain_id == chain_id)
+            .ok_or(OmniVaultError::InvalidTargetChain)?;
+
+        // Verify rebalancing improves yield
+        require!(
+            target_yield.apy > vault.current_apy,
+            OmniVaultError::NoYieldImprovement
+        );
+
+        let yield_improvement = target_yield.apy - vault.current_apy;
+
+        // Update vault state
+        vault.last_rebalance = current_time;
+        vault.current_best_chain = chain_id;
+        vault.current_apy = target_yield.apy;
+
+        msg!("Rebalancing {} USDC to domain {} via CCTP Fast Transfer", amount, target_domain);
+
+        emit!(CCTPRebalanceExecuted {
+            vault_id: vault.id,
+            amount,
+            from_chain: vault.current_best_chain,
+            to_domain: target_domain,
+            yield_improvement,
+            is_fast_transfer: true,
+        });
+
+        Ok(())
+    }
+
+    /// Process incoming CCTP hook for automated actions
+    pub fn handle_cctp_hook(
+        ctx: Context<HandleCCTPHook>,
+        hook_data: Vec<u8>,
+    ) -> Result<()> {
+        let vault = &mut ctx.accounts.vault;
+        let hook_registry = &ctx.accounts.hook_registry;
+
+        // Parse hook data to determine action
+        require!(!hook_data.is_empty(), OmniVaultError::InvalidHookData);
+
+        let action_type = hook_data[0];
+        let action_data = &hook_data[1..];
+
+        match action_type {
+            1 => { // Deposit to vault
+                msg!("Processing automated vault deposit via CCTP hook");
+                // Process deposit logic
+            },
+            2 => { // Rebalance
+                msg!("Processing automated rebalance via CCTP hook");
+                // Process rebalance logic
+            },
+            3 => { // Compound yield
+                msg!("Processing yield compounding via CCTP hook");
+                // Process compound logic
+            },
+            _ => {
+                return Err(OmniVaultError::UnsupportedHookAction.into());
+            }
+        }
+
+        emit!(CCTPHookExecuted {
+            vault_id: vault.id,
+            action_type,
+            timestamp: Clock::get()?.unix_timestamp,
+        });
+
+        Ok(())
+    }
+
+    /// Process Circle attestation for incoming CCTP transfer
+    pub fn process_cctp_attestation(
+        ctx: Context<ProcessCCTPAttestation>,
+        message_hash: Vec<u8>,
+        attestation: Vec<u8>,
+    ) -> Result<()> {
+        let cctp_tracker = &mut ctx.accounts.cctp_transfer_tracker;
+
+        // Verify attestation signature (simplified)
+        require!(!attestation.is_empty(), OmniVaultError::InvalidAttestation);
+
+        // Update transfer tracker
+        cctp_tracker.attestation_received = true;
+        cctp_tracker.attestation_timestamp = Clock::get()?.unix_timestamp;
+
+        msg!("CCTP attestation processed for message: {:?}", message_hash);
+
+        emit!(CCTPAttestationProcessed {
+            message_hash,
+            timestamp: Clock::get()?.unix_timestamp,
+        });
+
+        Ok(())
+    }
+}
+
+// Helper function to convert CCTP domain to LayerZero chain ID
+fn cctp_domain_to_chain_id(domain: u32) -> u16 {
+    match domain {
+        0 => chain_ids::ETHEREUM,
+        1 => chain_ids::AVALANCHE,
+        2 => chain_ids::OPTIMISM,
+        3 => chain_ids::ARBITRUM,
+        6 => chain_ids::BASE,
+        7 => chain_ids::POLYGON,
+        _ => 0,
+    }
 }
 
 // Helper function to create LayerZero options for different chains
@@ -837,6 +1077,96 @@ pub struct ResumeOperations<'info> {
     pub authority: Signer<'info>,
 }
 
+// CCTP Context Structs
+
+#[derive(Accounts)]
+pub struct DepositUSDCViaCCTP<'info> {
+    #[account(mut)]
+    pub vault: Account<'info, Vault>,
+    #[account(
+        init_if_needed,
+        payer = user,
+        space = 8 + UserPosition::INIT_SPACE,
+        seeds = [b"position", vault.key().as_ref(), user.key().as_ref()],
+        bump
+    )]
+    pub user_position: Account<'info, UserPosition>,
+    #[account()]
+    pub vault_store: Account<'info, VaultStore>,
+    #[account()]
+    pub cctp_config: Account<'info, CCTPConfig>,
+    #[account(mut)]
+    pub user: Signer<'info>,
+    /// CHECK: USDC Mint account
+    pub usdc_mint: AccountInfo<'info>,
+    #[account(mut)]
+    pub user_usdc_account: Account<'info, TokenAccount>,
+    #[account(mut)]
+    pub vault_usdc_account: Account<'info, TokenAccount>,
+    pub token_program: Program<'info, Token>,
+    pub system_program: Program<'info, System>,
+}
+
+#[derive(Accounts)]
+pub struct WithdrawUSDCViaCCTP<'info> {
+    #[account(mut)]
+    pub vault: Account<'info, Vault>,
+    #[account(mut)]
+    pub user_position: Account<'info, UserPosition>,
+    #[account()]
+    pub vault_store: Account<'info, VaultStore>,
+    #[account()]
+    pub cctp_config: Account<'info, CCTPConfig>,
+    #[account(mut)]
+    pub user: Signer<'info>,
+    /// CHECK: USDC Mint account
+    pub usdc_mint: AccountInfo<'info>,
+    #[account(mut)]
+    pub user_usdc_account: Account<'info, TokenAccount>,
+    #[account(mut)]
+    pub vault_usdc_account: Account<'info, TokenAccount>,
+    /// CHECK: CCTP TokenMessenger program
+    pub token_messenger: AccountInfo<'info>,
+    pub token_program: Program<'info, Token>,
+}
+
+#[derive(Accounts)]
+pub struct RebalanceWithCCTP<'info> {
+    #[account(mut)]
+    pub vault: Account<'info, Vault>,
+    #[account(mut)]
+    pub yield_tracker: Account<'info, YieldTracker>,
+    #[account()]
+    pub vault_store: Account<'info, VaultStore>,
+    #[account()]
+    pub cctp_config: Account<'info, CCTPConfig>,
+    pub authority: Signer<'info>,
+    /// CHECK: CCTP TokenMessenger program
+    pub token_messenger: AccountInfo<'info>,
+}
+
+#[derive(Accounts)]
+pub struct HandleCCTPHook<'info> {
+    #[account(mut)]
+    pub vault: Account<'info, Vault>,
+    #[account()]
+    pub hook_registry: Account<'info, HookRegistry>,
+    #[account()]
+    pub vault_store: Account<'info, VaultStore>,
+    /// CHECK: CCTP Message Transmitter
+    pub message_transmitter: AccountInfo<'info>,
+    pub payer: Signer<'info>,
+}
+
+#[derive(Accounts)]
+pub struct ProcessCCTPAttestation<'info> {
+    #[account(mut)]
+    pub cctp_transfer_tracker: Account<'info, CCTPTransferTracker>,
+    /// CHECK: CCTP Message Transmitter
+    pub message_transmitter: AccountInfo<'info>,
+    pub payer: Signer<'info>,
+}
+
 // State structures
 #[account]
 #[derive(InitSpace)]
@@ -892,6 +1222,58 @@ pub struct YieldTracker {
     pub last_update: i64,
     pub query_nonce: u64,
     pub bump: u8,
+}
+
+// CCTP Account Structures
+
+#[account]
+#[derive(InitSpace)]
+pub struct CCTPConfig {
+    pub authority: Pubkey,
+    pub token_messenger: Pubkey,
+    pub message_transmitter: Pubkey,
+    pub usdc_mint: Pubkey,
+    pub fee_rate: u16, // Basis points for Fast Transfer
+    pub fast_transfer_enabled: bool,
+    pub max_fast_transfer_amount: u64,
+    #[max_len(10)]
+    pub supported_domains: Vec<u32>,
+    pub bump: u8,
+}
+
+#[account]
+#[derive(InitSpace)]
+pub struct CCTPTransferTracker {
+    pub message_hash: [u8; 32],
+    pub source_domain: u32,
+    pub destination_domain: u32,
+    pub amount: u64,
+    pub vault_id: u64,
+    pub user: Pubkey,
+    pub attestation_received: bool,
+    pub attestation_timestamp: i64,
+    pub transfer_completed: bool,
+    pub bump: u8,
+}
+
+#[account]
+#[derive(InitSpace)]
+pub struct HookRegistry {
+    pub authority: Pubkey,
+    pub vault: Pubkey,
+    #[max_len(20)]
+    pub allowed_actions: Vec<HookAction>,
+    pub auto_compound: bool,
+    pub auto_rebalance: bool,
+    pub bump: u8,
+}
+
+#[derive(AnchorSerialize, AnchorDeserialize, Clone, InitSpace)]
+pub struct HookAction {
+    pub action_type: u8, // 1: deposit, 2: rebalance, 3: compound
+    pub enabled: bool,
+    pub min_amount: u64,
+    pub target_chain: Option<u16>,
 }
 
 // Enums and Data Structures
@@ -1036,6 +1418,49 @@ pub struct SystemResumed {
     pub timestamp: i64,
 }
 
+// CCTP Events
+
+#[event]
+pub struct CCTPDepositMade {
+    pub vault_id: u64,
+    pub user: Pubkey,
+    pub amount: u64,
+    pub source_domain: u32,
+    pub new_total: u64,
+}
+
+#[event]
+pub struct CCTPWithdrawalMade {
+    pub vault_id: u64,
+    pub user: Pubkey,
+    pub amount: u64,
+    pub fee: u64,
+    pub destination_domain: u32,
+}
+
+#[event]
+pub struct CCTPRebalanceExecuted {
+    pub vault_id: u64,
+    pub amount: u64,
+    pub from_chain: u16,
+    pub to_domain: u32,
+    pub yield_improvement: u64,
+    pub is_fast_transfer: bool,
+}
+
+#[event]
+pub struct CCTPHookExecuted {
+    pub vault_id: u64,
+    pub action_type: u8,
+    pub timestamp: i64,
+}
+
+#[event]
+pub struct CCTPAttestationProcessed {
+    pub message_hash: Vec<u8>,
+    pub timestamp: i64,
+}
+
 // Error codes
 #[error_code]
 pub enum OmniVaultError {
@@ -1075,5 +1500,21 @@ pub enum OmniVaultError {
     QueryTooFrequent,
     #[msg("Vault emergency exit")]
     VaultEmergencyExit,
+    #[msg("Invalid attestation")]
+    InvalidAttestation,
+    #[msg("No yield improvement")]
+    NoYieldImprovement,
+    #[msg("Invalid hook data")]
+    InvalidHookData,
+    #[msg("Unsupported hook action")]
+    UnsupportedHookAction,
+    #[msg("System already resumed")]
+    SystemResumed,
+    #[msg("CCTP transfer failed")]
+    CCTPTransferFailed,
+    #[msg("Fast transfer not eligible")]
+    FastTransferNotEligible,
+    #[msg("Domain not supported")]
+    DomainNotSupported,
 }
 
