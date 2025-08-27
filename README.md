@@ -233,7 +233,7 @@ OmniVault/
    # Generate TypeScript types
    cd ..
    node scripts/generate-idl.js
-   
+
    # Deploy to devnet
    ./scripts/deploy.sh
    ```
@@ -596,7 +596,7 @@ We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) f
 4. Add tests
 5. Submit a PR
 
-## 📞 Support
+## 📞 Support 
 
 - **Documentation**: See frontend README for detailed docs
 - **Discord**: [Join our community](https://discord.gg/omnivault)
@@ -619,4 +619,4 @@ MIT License - see [LICENSE](LICENSE) file for details.
 [![Circle CCTP](https://img.shields.io/badge/Powered%20by-Circle%20CCTP%20V2-00D4FF?style=for-the-badge)](https://www.circle.com/en/cross-chain-transfer-protocol)
 [![Solana](https://img.shields.io/badge/Built%20on-Solana-9945FF?style=for-the-badge&logo=solana&logoColor=white)](https://solana.com/)
 
-</div>
+</div> 
