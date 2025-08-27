@@ -40,6 +40,7 @@ export interface UseOmniVaultReturn {
   
   // Balance information
   userSolBalance: number;
+  userUSDCBalance: number;
   minSolForVaultCreation: number;
   
   // Cross-chain data
@@ -73,6 +74,9 @@ export interface UseOmniVaultReturn {
   
   // Balance utilities
   refreshBalance: () => Promise<void>;
+  refreshUSDCBalance: () => Promise<void>;
+  getVaultUSDCBalance: (vaultAddress: PublicKey) => Promise<number>;
+  getUserUSDCPositionInVault: (vaultAddress: PublicKey) => Promise<number>;
   requestAirdrop: () => Promise<string | null>;
   
   // Real-time events
@@ -117,6 +121,7 @@ export const useOmniVault = (): UseOmniVaultReturn => {
   
   // Balance states
   const [userSolBalance, setUserSolBalance] = useState<number>(0);
+  const [userUSDCBalance, setUserUSDCBalance] = useState<number>(0);
   const [minSolForVaultCreation, setMinSolForVaultCreation] = useState<number>(0);
   
   // Cross-chain data
@@ -229,15 +234,53 @@ export const useOmniVault = (): UseOmniVaultReturn => {
     if (!service || !publicKey) return;
     
     try {
-      const [balance, minRequired] = await Promise.all([
+      const [balance, usdcBalance, minRequired] = await Promise.all([
         service.getUserSolBalance(publicKey),
+        service.getUserUSDCBalance(publicKey),
         service.getMinimumSolForVaultCreation()
       ]);
       
       setUserSolBalance(balance);
+      setUserUSDCBalance(usdcBalance);
       setMinSolForVaultCreation(minRequired);
     } catch (err) {
       console.error('Failed to refresh balance:', err);
+    }
+  }, [service, publicKey]);
+
+  // Refresh USDC balance only
+  const refreshUSDCBalance = useCallback(async () => {
+    if (!service || !publicKey) return;
+    
+    try {
+      const usdcBalance = await service.getUserUSDCBalance(publicKey);
+      setUserUSDCBalance(usdcBalance);
+    } catch (err) {
+      console.error('Failed to refresh USDC balance:', err);
+    }
+  }, [service, publicKey]);
+
+  // Get vault USDC balance
+  const getVaultUSDCBalance = useCallback(async (vaultAddress: PublicKey): Promise<number> => {
+    if (!service) return 0;
+    
+    try {
+      return await service.getVaultUSDCBalance(vaultAddress);
+    } catch (err) {
+      console.error('Failed to get vault USDC balance:', err);
+      return 0;
+    }
+  }, [service]);
+
+  // Get user's USDC position in vault
+  const getUserUSDCPositionInVault = useCallback(async (vaultAddress: PublicKey): Promise<number> => {
+    if (!service || !publicKey) return 0;
+    
+    try {
+      return await service.getUserUSDCPositionInVault(vaultAddress, publicKey);
+    } catch (err) {
+      console.error('Failed to get user USDC position in vault:', err);
+      return 0;
     }
   }, [service, publicKey]);
 
@@ -781,6 +824,7 @@ export const useOmniVault = (): UseOmniVaultReturn => {
     
     // Balance information
     userSolBalance,
+    userUSDCBalance,
     minSolForVaultCreation,
     
     // Cross-chain data
@@ -814,6 +858,9 @@ export const useOmniVault = (): UseOmniVaultReturn => {
     
     // Balance utilities
     refreshBalance,
+    refreshUSDCBalance,
+    getVaultUSDCBalance,
+    getUserUSDCPositionInVault,
     requestAirdrop,
     
     // Real-time events
