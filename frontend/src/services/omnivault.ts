@@ -932,6 +932,14 @@ export class OmniVaultService {
     return lamports / LAMPORTS_PER_SOL;
   }
 
+  usdcToSmallestUnit(usdc: number): number {
+    return Math.floor(usdc * 1e6);
+  }
+
+  smallestUnitToUsdc(units: number): number {
+    return units / 1e6;
+  }
+
   // Check user's SOL balance
   async getUserSolBalance(publicKey?: PublicKey): Promise<number> {
     const userKey = publicKey || this.provider.wallet.publicKey;
@@ -941,6 +949,95 @@ export class OmniVaultService {
     
     const balance = await this.provider.connection.getBalance(userKey);
     return this.lamportsToSol(balance);
+  }
+
+  // Get user's USDC balance
+  async getUserUSDCBalance(publicKey?: PublicKey): Promise<number> {
+    try {
+      const { getAssociatedTokenAddress } = await import('@solana/spl-token');
+      const key = publicKey || this.provider.wallet.publicKey;
+      if (!key) return 0;
+
+      // USDC mint address on Solana (devnet)
+      const USDC_MINT = new PublicKey('4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU');
+      
+      // Get user's USDC associated token account
+      const userUSDCAccount = await getAssociatedTokenAddress(
+        USDC_MINT,
+        key
+      );
+
+      try {
+        const balance = await this.provider.connection.getTokenAccountBalance(userUSDCAccount);
+        return balance.value.uiAmount || 0;
+      } catch (error) {
+        // Account doesn't exist yet, return 0
+        console.log('USDC account not found, returning 0');
+        return 0;
+      }
+    } catch (error) {
+      console.error('Error getting USDC balance:', error);
+      return 0;
+    }
+  }
+
+  // Get vault's USDC balance
+  async getVaultUSDCBalance(vaultAddress: PublicKey): Promise<number> {
+    try {
+      const { getAssociatedTokenAddress } = await import('@solana/spl-token');
+      
+      // USDC mint address on Solana (devnet)
+      const USDC_MINT = new PublicKey('4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU');
+      
+      // Get vault's USDC associated token account (vault is a PDA, so we need the third parameter as true)
+      const vaultUSDCAccount = await getAssociatedTokenAddress(
+        USDC_MINT,
+        vaultAddress,
+        true // This is crucial - the vault is a PDA, not a regular account
+      );
+
+      try {
+        const balance = await this.provider.connection.getTokenAccountBalance(vaultUSDCAccount);
+        return balance.value.uiAmount || 0;
+      } catch (error) {
+        // Account doesn't exist yet, return 0
+        console.log('Vault USDC account not found, returning 0');
+        return 0;
+      }
+    } catch (error) {
+      console.error('Error getting vault USDC balance:', error);
+      return 0;
+    }
+  }
+
+  // Get user's USDC position in a specific vault
+  async getUserUSDCPositionInVault(vaultAddress: PublicKey, userPublicKey?: PublicKey): Promise<number> {
+    try {
+      const user = userPublicKey || this.provider.wallet.publicKey;
+      if (!user) return 0;
+
+      const userPosition = await this.getUserPosition(user, vaultAddress);
+      
+      if (!userPosition) return 0;
+
+      // Get vault data to calculate USDC portion
+      const vault = await this.program.account.vault.fetchNullable(vaultAddress);
+      if (!vault) return 0;
+
+      // Get total USDC in vault
+      const vaultUSDCBalance = await this.getVaultUSDCBalance(vaultAddress);
+      
+      // Calculate user's share of USDC
+      if (vault.totalDeposits.toNumber() > 0) {
+        const userShare = userPosition.amount.toNumber() / vault.totalDeposits.toNumber();
+        return vaultUSDCBalance * userShare;
+      }
+      
+      return 0;
+    } catch (error) {
+      console.error('Error getting user USDC position in vault:', error);
+      return 0;
+    }
   }
 
   // Calculate minimum SOL required to create a vault (rent + fees)
