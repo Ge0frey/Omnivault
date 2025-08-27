@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { 
   CurrencyDollarIcon, 
@@ -32,7 +32,7 @@ const SUPPORTED_TOKENS: TokenOption[] = [
     icon: '◎'
   },
   {
-    address: 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v',
+    address: '4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU',
     symbol: 'USDC',
     name: 'USD Coin',
     decimals: 6,
@@ -54,9 +54,12 @@ export const Deposit = () => {
   const { 
     userVaults, 
     userSolBalance,
+    userUSDCBalance,
     loading,
     depositSol,
     depositUSDC,
+    getVaultUSDCBalance,
+    getUserUSDCPositionInVault,
     error,
     clearError
   } = useOmniVault();
@@ -70,6 +73,47 @@ export const Deposit = () => {
     description: string;
   } | null>(null);
   const [showCCTPModal, setShowCCTPModal] = useState(false);
+  const [vaultUSDCBalance, setVaultUSDCBalance] = useState<number>(0);
+  const [userUSDCPosition, setUserUSDCPosition] = useState<number>(0);
+  const [allVaultUSDCBalances, setAllVaultUSDCBalances] = useState<Map<string, number>>(new Map());
+
+  // Fetch USDC balances for all vaults
+  useEffect(() => {
+    const fetchAllVaultUSDCBalances = async () => {
+      if (!userVaults.length || !getVaultUSDCBalance) return;
+      
+      const balances = new Map<string, number>();
+      for (const vault of userVaults) {
+        try {
+          const balance = await getVaultUSDCBalance(vault.publicKey);
+          balances.set(vault.publicKey.toString(), balance);
+        } catch (err) {
+          console.error('Error fetching USDC balance for vault:', err);
+        }
+      }
+      setAllVaultUSDCBalances(balances);
+    };
+    fetchAllVaultUSDCBalances();
+  }, [userVaults, getVaultUSDCBalance]);
+
+  // Fetch vault USDC balances when a vault is selected
+  useEffect(() => {
+    const fetchVaultUSDCData = async () => {
+      if (selectedVaultForDeposit?.publicKey && getVaultUSDCBalance && getUserUSDCPositionInVault) {
+        try {
+          const [balance, position] = await Promise.all([
+            getVaultUSDCBalance(selectedVaultForDeposit.publicKey),
+            getUserUSDCPositionInVault(selectedVaultForDeposit.publicKey)
+          ]);
+          setVaultUSDCBalance(balance);
+          setUserUSDCPosition(position);
+        } catch (err) {
+          console.error('Error fetching vault USDC data:', err);
+        }
+      }
+    };
+    fetchVaultUSDCData();
+  }, [selectedVaultForDeposit, getVaultUSDCBalance, getUserUSDCPositionInVault]);
 
   const handleDeposit = async () => {
     if (!selectedVaultForDeposit || !amount) return;
@@ -102,6 +146,27 @@ export const Deposit = () => {
           title: "Deposit Successful!",
           description: `Successfully deposited ${amount} ${selectedToken.symbol} into Vault #${selectedVaultForDeposit.id.toString()}`
         });
+        
+        // Refresh vault USDC balances after successful deposit
+        if (selectedToken.symbol === 'USDC' && getVaultUSDCBalance && getUserUSDCPositionInVault) {
+          setTimeout(async () => {
+            try {
+              const [balance, position] = await Promise.all([
+                getVaultUSDCBalance(selectedVaultForDeposit.publicKey),
+                getUserUSDCPositionInVault(selectedVaultForDeposit.publicKey)
+              ]);
+              setVaultUSDCBalance(balance);
+              setUserUSDCPosition(position);
+              
+              // Also update the map
+              const newBalances = new Map(allVaultUSDCBalances);
+              newBalances.set(selectedVaultForDeposit.publicKey.toString(), balance);
+              setAllVaultUSDCBalances(newBalances);
+            } catch (err) {
+              console.error('Error refreshing USDC balances:', err);
+            }
+          }, 2000); // Wait 2 seconds for transaction to confirm
+        }
       }
     } catch (error) {
       console.error('Deposit failed:', error);
@@ -278,7 +343,12 @@ export const Deposit = () => {
                       </div>
                       <div>
                         <span className="text-gray-400">Total Deposited:</span>
-                        <div className="font-medium text-white">{(vault.totalDeposits.toNumber() / 1e9).toFixed(4)} SOL</div>
+                        <div className="font-medium text-white">
+                          <div>{(vault.totalDeposits.toNumber() / 1e9).toFixed(4)} SOL</div>
+                          {(allVaultUSDCBalances.get(vault.publicKey.toString()) || 0) > 0 && (
+                            <div className="text-blue-400">${(allVaultUSDCBalances.get(vault.publicKey.toString()) || 0).toFixed(2)} USDC</div>
+                          )}
+                        </div>
                       </div>
                     </div>
                     
@@ -329,9 +399,12 @@ export const Deposit = () => {
                       </div>
                     </div>
                     <div>
-                      <span className="text-gray-400">Your Position:</span>
+                      <span className="text-gray-400">Vault Total:</span>
                       <div className="font-medium text-white">
-                        {(selectedVaultForDeposit.totalDeposits.toNumber() / 1e9).toFixed(4)} SOL
+                        <div>{(selectedVaultForDeposit.totalDeposits.toNumber() / 1e9).toFixed(4)} SOL</div>
+                        {vaultUSDCBalance > 0 && (
+                          <div className="text-blue-400">${vaultUSDCBalance.toFixed(2)} USDC</div>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -406,9 +479,13 @@ export const Deposit = () => {
                       max={selectedToken.symbol === 'SOL' ? userSolBalance : undefined}
                       className="input w-full pr-16"
                     />
-                    {selectedToken.symbol === 'SOL' && (
+                    {(selectedToken.symbol === 'SOL' || selectedToken.symbol === 'USDC') && (
                       <button
-                        onClick={() => setAmount(userSolBalance.toString())}
+                        onClick={() => setAmount(
+                          selectedToken.symbol === 'SOL' 
+                            ? userSolBalance.toString()
+                            : userUSDCBalance.toString()
+                        )}
                         className="absolute right-2 top-1/2 transform -translate-y-1/2 text-xs text-accent-400 hover:text-accent-300 bg-accent-500/20 px-2 py-1 rounded font-medium transition-colors"
                       >
                         MAX
@@ -417,14 +494,23 @@ export const Deposit = () => {
                   </div>
                   <div className="mt-2 flex justify-between text-xs sm:text-sm">
                     <span className="text-gray-400">
-                      Available: {selectedToken.symbol === 'SOL' ? userSolBalance.toFixed(4) : '0.00'} {selectedToken.symbol}
-                    </span>
-                    {amount && (
-                      <span className="text-gray-400">
-                        ≈ ${(parseFloat(amount) * (selectedToken.symbol === 'SOL' ? 150 : selectedToken.symbol === 'USDC' ? 1 : 1)).toFixed(2)} USD
-                      </span>
-                    )}
-                  </div>
+                      Available: {
+                        selectedToken.symbol === 'SOL' 
+                          ? `${userSolBalance.toFixed(4)} SOL` 
+                          : `${userUSDCBalance.toFixed(2)} USDC`
+                      }
+                                          </span>
+                      {selectedVaultForDeposit && userUSDCPosition > 0 && (
+                        <span className="text-gray-400 text-xs">
+                          Position: ${userUSDCPosition.toFixed(2)} USDC
+                        </span>
+                      )}
+                      {amount && (
+                        <span className="text-gray-400">
+                          ≈ ${(parseFloat(amount) * (selectedToken.symbol === 'SOL' ? 150 : selectedToken.symbol === 'USDC' ? 1 : 1)).toFixed(2)} USD
+                        </span>
+                      )}
+                    </div>
                 </div>
 
                 {/* Quick Amount Buttons */}
@@ -435,8 +521,13 @@ export const Deposit = () => {
                       [0.1, 0.5, 1.0, 5.0].map((quickAmount) => (
                         <button
                           key={quickAmount}
-                          onClick={() => setAmount(Math.min(quickAmount, userSolBalance).toString())}
-                          disabled={quickAmount > userSolBalance}
+                          onClick={() => {
+                            const maxAvailable = selectedToken.symbol === 'SOL' 
+                              ? userSolBalance 
+                              : userUSDCBalance;
+                            setAmount(Math.min(quickAmount, maxAvailable).toString());
+                          }}
+                          disabled={quickAmount > (selectedToken.symbol === 'SOL' ? userSolBalance : userUSDCBalance)}
                           className="btn btn-secondary text-xs px-2 py-1 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                           {quickAmount} {selectedToken.symbol}
@@ -445,8 +536,9 @@ export const Deposit = () => {
                       [10, 50, 100, 500].map((quickAmount) => (
                         <button
                           key={quickAmount}
-                          onClick={() => setAmount(quickAmount.toString())}
-                          className="btn btn-secondary text-xs px-2 py-1"
+                          onClick={() => setAmount(Math.min(quickAmount, userUSDCBalance).toString())}
+                          disabled={quickAmount > userUSDCBalance}
+                          className="btn btn-secondary text-xs px-2 py-1 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                           {quickAmount} {selectedToken.symbol}
                         </button>

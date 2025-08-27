@@ -26,6 +26,7 @@ export const Dashboard = () => {
     selectedVault,
     userPosition,
     userSolBalance,
+    userUSDCBalance,
     minSolForVaultCreation,
     loading,
     isInitializing,
@@ -36,6 +37,8 @@ export const Dashboard = () => {
     refreshData,
     refreshBalance,
     requestAirdrop,
+    getVaultUSDCBalance,
+    getUserUSDCPositionInVault,
     error,
     clearError
   } = useOmniVault();
@@ -47,6 +50,8 @@ export const Dashboard = () => {
     title: string;
     description: string;
   } | null>(null);
+  const [vaultUSDCBalances, setVaultUSDCBalances] = useState<Map<string, number>>(new Map());
+  const [userUSDCPositions, setUserUSDCPositions] = useState<Map<string, number>>(new Map());
 
   // Auto-refresh data every 30 seconds
   useEffect(() => {
@@ -55,6 +60,34 @@ export const Dashboard = () => {
       return () => clearInterval(interval);
     }
   }, [connected, refreshData]);
+
+  // Fetch USDC balances for all vaults
+  useEffect(() => {
+    const fetchUSDCBalances = async () => {
+      if (!userVaults.length || !getVaultUSDCBalance || !getUserUSDCPositionInVault) return;
+      
+      const balances = new Map<string, number>();
+      const positions = new Map<string, number>();
+      
+      for (const vault of userVaults) {
+        try {
+          const [vaultBalance, userPosition] = await Promise.all([
+            getVaultUSDCBalance(vault.publicKey),
+            getUserUSDCPositionInVault(vault.publicKey)
+          ]);
+          balances.set(vault.publicKey.toString(), vaultBalance);
+          positions.set(vault.publicKey.toString(), userPosition);
+        } catch (err) {
+          console.error('Error fetching USDC balances for vault:', err);
+        }
+      }
+      
+      setVaultUSDCBalances(balances);
+      setUserUSDCPositions(positions);
+    };
+    
+    fetchUSDCBalances();
+  }, [userVaults, getVaultUSDCBalance, getUserUSDCPositionInVault]);
 
   const handleInitialize = async () => {
     const tx = await initialize();
@@ -272,22 +305,39 @@ export const Dashboard = () => {
         )}
 
         {/* Stats Grid */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4 lg:gap-6 mb-6 sm:mb-8">
-          <div className="stat-card col-span-2 sm:col-span-1">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4 lg:gap-6 mb-6 sm:mb-8">
+          <div className="stat-card col-span-1">
             <div className="flex flex-col sm:flex-row sm:items-center">
               <div className="p-2 sm:p-3 bg-primary-500/20 rounded-xl mb-2 sm:mb-0 sm:mr-3 self-start">
                 <CurrencyDollarIcon className="h-5 w-5 sm:h-6 sm:w-6 text-primary-400" />
               </div>
               <div className="flex-1 min-w-0">
-                <div className="text-xs sm:text-sm font-medium text-gray-400">Your SOL Balance</div>
+                <div className="text-xs sm:text-sm font-medium text-gray-400">SOL Balance</div>
                 <div className="text-base sm:text-xl font-bold text-white truncate">
-                  {userSolBalance.toFixed(4)} SOL
+                  {userSolBalance.toFixed(4)}
                 </div>
                 {userSolBalance < minSolForVaultCreation && (
                   <div className="text-xs text-red-400 mt-1">
-                    Need {minSolForVaultCreation.toFixed(4)} SOL minimum
+                    Min: {minSolForVaultCreation.toFixed(2)}
                   </div>
                 )}
+              </div>
+            </div>
+          </div>
+
+          <div className="stat-card col-span-1">
+            <div className="flex flex-col sm:flex-row sm:items-center">
+              <div className="p-2 sm:p-3 bg-blue-500/20 rounded-xl mb-2 sm:mb-0 sm:mr-3 self-start">
+                <CurrencyDollarIcon className="h-5 w-5 sm:h-6 sm:w-6 text-blue-400" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="text-xs sm:text-sm font-medium text-gray-400">USDC Balance</div>
+                <div className="text-base sm:text-xl font-bold text-white truncate">
+                  ${userUSDCBalance.toFixed(2)}
+                </div>
+                <div className="text-xs text-gray-500 mt-1">
+                  Available
+                </div>
               </div>
             </div>
           </div>
@@ -405,8 +455,11 @@ export const Dashboard = () => {
                     </div>
                     <div className="grid grid-cols-2 gap-3 sm:gap-4 text-xs sm:text-sm">
                       <div>
-                        <span className="text-gray-400">Deposits:</span>
-                        <div className="font-medium text-white">{(vault.totalDeposits.toNumber() / 1e9).toFixed(4)} SOL</div>
+                                              <span className="text-gray-400">Deposits:</span>
+                      <div className="font-medium text-white">
+                        <div>{(vault.totalDeposits.toNumber() / 1e9).toFixed(4)} SOL</div>
+                        <div className="text-blue-400">${(vaultUSDCBalances.get(vault.publicKey.toString()) || 0).toFixed(2)} USDC</div>
+                      </div>
                       </div>
                       <div>
                         <span className="text-gray-400">Created:</span>
@@ -460,13 +513,19 @@ export const Dashboard = () => {
                     <div className="bg-white/5 rounded-lg p-3 sm:p-4">
                       <div className="text-xs sm:text-sm font-medium text-gray-400 mb-1">Total Deposits</div>
                       <div className="text-base sm:text-lg font-bold text-white">
-                        {(selectedVault.totalDeposits.toNumber() / 1e9).toFixed(6)} SOL
+                        {(selectedVault.totalDeposits.toNumber() / 1e9).toFixed(4)} SOL
+                      </div>
+                      <div className="text-sm text-blue-400">
+                        ${(vaultUSDCBalances.get(selectedVault.publicKey.toString()) || 0).toFixed(2)} USDC
                       </div>
                     </div>
                     <div className="bg-white/5 rounded-lg p-3 sm:p-4">
                       <div className="text-xs sm:text-sm font-medium text-gray-400 mb-1">Your Position</div>
                       <div className="text-base sm:text-lg font-bold text-white">
-                        {userPosition ? (userPosition.amount.toNumber() / 1e9).toFixed(6) : '0.000000'} SOL
+                        {userPosition ? (userPosition.amount.toNumber() / 1e9).toFixed(4) : '0.0000'} SOL
+                      </div>
+                      <div className="text-sm text-blue-400">
+                        ${(userUSDCPositions.get(selectedVault.publicKey.toString()) || 0).toFixed(2)} USDC
                       </div>
                     </div>
                     <div className="bg-white/5 rounded-lg p-3 sm:p-4">
