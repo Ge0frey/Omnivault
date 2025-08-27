@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { BN } from '@coral-xyz/anchor';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { 
@@ -34,7 +34,7 @@ const SUPPORTED_TOKENS: TokenOption[] = [
     icon: '◎'
   },
   {
-    address: 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v',
+    address: '4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU',
     symbol: 'USDC',
     name: 'USD Coin',
     decimals: 6,
@@ -56,6 +56,7 @@ export const Withdraw = () => {
   const { 
     userVaults, 
     loading,
+    getUserUSDCPositionInVault,
     withdrawSol,
     withdrawUSDC,
     error,
@@ -72,6 +73,18 @@ export const Withdraw = () => {
     description: string;
   } | null>(null);
   const [showCCTPModal, setShowCCTPModal] = useState(false);
+  const [vaultUSDCPosition, setVaultUSDCPosition] = useState<number>(0);
+
+  // Fetch vault USDC position when vault is selected
+  useEffect(() => {
+    const fetchUSDCPosition = async () => {
+      if (selectedVaultForWithdraw?.publicKey && getUserUSDCPositionInVault) {
+        const position = await getUserUSDCPositionInVault(selectedVaultForWithdraw.publicKey);
+        setVaultUSDCPosition(position);
+      }
+    };
+    fetchUSDCPosition();
+  }, [selectedVaultForWithdraw, getUserUSDCPositionInVault]);
 
   const handleWithdraw = async () => {
     if (!selectedVaultForWithdraw || (!amount && withdrawType === 'partial')) return;
@@ -137,8 +150,11 @@ export const Withdraw = () => {
   };
 
   const getAvailableBalance = (vault: any): number => {
-    // This would be the user's position in the vault
-    // For now, using vault's total deposits as placeholder
+    // Return balance based on selected token
+    if (selectedToken.symbol === 'USDC') {
+      return vaultUSDCPosition;
+    }
+    // For SOL, use the vault's total deposits (simplified)
     return vault.totalDeposits.toNumber() / 1e9;
   };
 
@@ -282,7 +298,11 @@ export const Withdraw = () => {
                       <div className="grid grid-cols-2 gap-3 sm:gap-4 text-xs sm:text-sm mb-3">
                         <div>
                           <span className="text-gray-400">Available:</span>
-                          <div className="font-medium text-white">{availableBalance.toFixed(4)} SOL</div>
+                          <div className="font-medium text-white">
+                            {selectedToken.symbol === 'SOL' 
+                              ? `${availableBalance.toFixed(4)} SOL`
+                              : `${vaultUSDCPosition.toFixed(2)} USDC`}
+                          </div>
                         </div>
                         <div>
                           <span className="text-gray-400">Yield Earned:</span>
@@ -342,7 +362,9 @@ export const Withdraw = () => {
                     <div>
                       <span className="text-gray-400">Available:</span>
                       <div className="font-medium text-white">
-                        {getAvailableBalance(selectedVaultForWithdraw).toFixed(4)} SOL
+                        {selectedToken.symbol === 'SOL'
+                          ? `${getAvailableBalance(selectedVaultForWithdraw).toFixed(4)} SOL`
+                          : `${vaultUSDCPosition.toFixed(2)} USDC`}
                       </div>
                     </div>
                     <div>
@@ -478,7 +500,11 @@ export const Withdraw = () => {
                     </div>
                     <div className="mt-2 flex justify-between text-xs sm:text-sm">
                       <span className="text-gray-400">
-                        Available: {selectedToken.symbol === 'SOL' ? getAvailableBalance(selectedVaultForWithdraw).toFixed(4) : '0.00'} {selectedToken.symbol}
+                        Available: {
+                          selectedToken.symbol === 'SOL' 
+                            ? `${getAvailableBalance(selectedVaultForWithdraw).toFixed(4)} SOL`
+                            : `${vaultUSDCPosition.toFixed(2)} USDC`
+                        }
                       </span>
                       {amount && (
                         <span className="text-gray-400">
