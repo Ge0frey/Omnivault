@@ -269,7 +269,7 @@ OmniVault/
 4. Enter amount
 5. Click **Deposit**
 
-####  Cross-Chain USDC Deposits (New! ⚡)
+####  Cross-Chain USDC Deposits 
 1. Select **USDC** as token
 2. Click **"Use Cross-Chain Deposit"**
 3. In the CCTP modal:
@@ -292,7 +292,7 @@ OmniVault/
    - **Full** - Withdraw everything
 4. Confirm withdrawal
 
-#### Cross-Chain USDC Withdrawals (New! ⚡)
+#### Cross-Chain USDC Withdrawals 
 1. Select **USDC** as token
 2. Click **"Use Cross-Chain Withdrawal"**
 3. Select destination chain
@@ -334,7 +334,7 @@ pub fn withdraw_sol(amount: u64) -> Result<()>
 pub fn deposit(amount: u64) -> Result<()>  // SPL tokens including USDC
 pub fn withdraw(amount: u64) -> Result<()> // SPL tokens including USDC
 
-// CCTP V2 Instructions (New!)
+// CCTP V2 Instructions 
 pub fn deposit_usdc_via_cctp(amount, source_domain, attestation) -> Result<()>
 pub fn withdraw_usdc_via_cctp(amount, destination_domain, destination_address) -> Result<()>
 pub fn rebalance_with_cctp(target_domain, amount) -> Result<()>
@@ -370,7 +370,7 @@ pub struct Vault {
     pub current_apy: u64,
 }
 
-// CCTP V2 Accounts (New!)
+// CCTP V2 Accounts 
 pub struct CCTPConfig {
     pub token_messenger: Pubkey,
     pub message_transmitter: Pubkey,
