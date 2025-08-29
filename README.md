@@ -1,4 +1,4 @@
-# OmniVault 🚀
+# OmniVault 
 
 ## Access platform from - https://omnizerovault.vercel.app/
 
@@ -15,32 +15,32 @@
 [![React](https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB)](https://reactjs.org/)
 [![Anchor](https://img.shields.io/badge/Anchor-FF6B35?style=for-the-badge)](https://www.anchor-lang.com/)
 
-## 🌟 Overview
+##  Overview
 
 OmniVault is a cutting-edge DeFi platform that combines LayerZero V2's omnichain messaging with Circle's Cross-Chain Transfer Protocol (CCTP V2) to create the industry's fastest cross-chain yield optimizer. By leveraging a hybrid architecture, OmniVault delivers sub-30-second USDC transfers while maintaining comprehensive yield discovery and optimization across multiple blockchain networks.
 
-## ✨ Key Features
+##  Key Features
 
-### 🔥 Core Functionality
-- **⚡ Hybrid Cross-Chain Architecture**: Combines CCTP V2 for fast USDC transfers with LayerZero V2 for yield discovery
-- **💨 Lightning-Fast USDC Transfers**: Sub-30-second cross-chain USDC movements via CCTP V2
-- **🌐 Comprehensive Yield Optimization**: Automatically find and capitalize on the best opportunities across 10+ chains
-- **🛡️ Risk-Based Vault Management**: Conservative, Moderate, and Aggressive risk profiles
-- **🔄 Automated Rebalancing**: Smart contracts automatically move funds to highest-yielding protocols
-- **📊 Real-Time Analytics**: Cross-chain performance tracking with live updates
-- **💰 Multi-Asset Support**: Native SOL and USDC deposits/withdrawals with SPL token compatibility
-- **🪝 Hook-Based Automation**: Automated actions post-transfer (auto-compound, auto-rebalance)
+###  Core Functionality
+- **Hybrid Cross-Chain Architecture**: Combines CCTP V2 for fast USDC transfers with LayerZero V2 for yield discovery
+- **Lightning-Fast USDC Transfers**: Sub-30-second cross-chain USDC movements via CCTP V2
+- **Comprehensive Yield Optimization**: Automatically find and capitalize on the best opportunities across 10+ chains
+- **Risk-Based Vault Management**: Conservative, Moderate, and Aggressive risk profiles
+- **Automated Rebalancing**: Smart contracts automatically move funds to highest-yielding protocols
+- **Real-Time Analytics**: Cross-chain performance tracking with live updates
+- **Multi-Asset Support**: Native SOL and USDC deposits/withdrawals with SPL token compatibility
+- **Hook-Based Automation**: Automated actions post-transfer (auto-compound, auto-rebalance)
 
-### 🛠️ Technical Features
-- **🏗️ Solana Program**: High-performance smart contracts with CCTP V2 instructions
-- **🌉 Dual Protocol Integration**: LayerZero V2 OApp + Circle CCTP V2 
-- **⚛️ React Frontend**: Modern UI with CCTP modal and cross-chain transfer flows
-- **🔗 Multi-Wallet Support**: Phantom, Solflare, and Torus wallet integration
-- **📡 Attestation Monitoring**: Real-time Circle attestation service integration
-- **🎯 Smart Routing**: Intelligent protocol selection based on asset type and operation
-- **🐳 Docker Support**: Containerized development environment
+###  Technical Features
+- **Solana Program**: High-performance smart contracts with CCTP V2 instructions
+- **Dual Protocol Integration**: LayerZero V2 OApp + Circle CCTP V2 
+- **React Frontend**: Modern UI with CCTP modal and cross-chain transfer flows
+- **Multi-Wallet Support**: Phantom, Solflare, and Torus wallet integration
+- **Attestation Monitoring**: Real-time Circle attestation service integration
+- **Smart Routing**: Intelligent protocol selection based on asset type and operation
+- **Docker Support**: Containerized development environment
 
-## 🏗️ Architecture
+##  Architecture
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────────────────┐
@@ -52,7 +52,7 @@ OmniVault is a cutting-edge DeFi platform that combines LayerZero V2's omnichain
   │ 1. Connect Wallet
   ▼
 ┌─────────────────┐
-│   🦊 PHANTOM    │ ──── Wallet Adapter ──── React Frontend
+│    PHANTOM    │ ──── Wallet Adapter ──── React Frontend
 │     WALLET      │                           │
 └─────────────────┘                           │
                                               ▼
@@ -70,7 +70,7 @@ OmniVault is a cutting-edge DeFi platform that combines LayerZero V2's omnichain
                                               │ 2. Deposit/Withdraw
                                               ▼
                                     ┌─────────────────┐
-                                    │ 🎯 HYBRID       │
+                                    │  HYBRID         │
                                     │ ORCHESTRATOR    │
                                     │                 │
                                     │ • Route Logic   │
@@ -78,23 +78,23 @@ OmniVault is a cutting-edge DeFi platform that combines LayerZero V2's omnichain
                                     └─────────────────┘
                                          │         │
                             ┌────────────┘         └────────────┐
-                            │                                    │
+                            │                                   │
                    3a. USDC Operations                  3b. Yield & Non-USDC
-                            │                                    │
-                            ▼                                    ▼
+                            │                                   │
+                            ▼                                   ▼
                   ┌─────────────────┐                  ┌─────────────────┐
-                  │  💠 CCTP V2     │                  │  🌉 LAYERZERO   │
+                  │     CCTP V2     │                  │     LAYERZERO   │
                   │  SERVICE        │                  │  V2 SERVICE     │
                   │                 │                  │                 │
                   │ • Fast Transfer │                  │ • Yield Query   │
-                  │ • Burn/Mint    │                  │ • State Sync    │
-                  │ • Attestation  │                  │ • Messaging     │
-                  │ • Hooks        │                  │ • Emergency     │
+                  │ • Burn/Mint     │                  │ • State Sync    │
+                  │ • Attestation   │                  │ • Messaging     │
+                  │ • Hooks         │                  │ • Emergency     │
                   └─────────────────┘                  └─────────────────┘
                             │                                    │
                             ▼                                    ▼
                   ┌─────────────────┐                  ┌─────────────────┐
-                  │ 🔐 ATTESTATION  │                  │  ⚓ ANCHOR      │
+                  │    ATTESTATION  │                  │  ⚓ ANCHOR       │
                   │ MONITOR         │                  │  PROGRAM        │
                   │                 │                  │                 │
                   │ • Poll Circle   │                  │ • VaultStore    │
@@ -107,7 +107,7 @@ OmniVault is a cutting-edge DeFi platform that combines LayerZero V2's omnichain
                                4. Cross-chain Execution
                                         ▼
                 ┌───────────────────────────────────────────────────────────┐
-                │                    🌐 TARGET CHAINS                        │
+                │                      TARGET CHAINS                        │
                 │                                                            │
                 │  CCTP Supported:           LayerZero Supported:           │
                 │  ┌─────────────────────┐   ┌──────────────────────────┐  │
@@ -125,14 +125,14 @@ OmniVault is a cutting-edge DeFi platform that combines LayerZero V2's omnichain
                 └───────────────────────────────────────────────────────────┘
 ```
 
-## 📁 Project Structure
+##  Project Structure
 
 ```
 OmniVault/
 │
-├── 🎨 frontend/                   # React TypeScript frontend
+├──   frontend/                   # React TypeScript frontend
 │   ├── src/
-│   │   ├── components/           # 🧩 UI Components
+│   │   ├── components/           #   UI Components
 │   │   │   ├── Header.tsx        # Navigation header
 │   │   │   ├── WalletProvider.tsx # Solana wallet integration
 │   │   │   ├── YieldMonitor.tsx  # Cross-chain yield tracking
@@ -140,16 +140,16 @@ OmniVault/
 │   │   │   ├── FastTransferIndicator.tsx # CCTP transfer status
 │   │   │   ├── CCTPTransferModal.tsx # Cross-chain USDC modal
 │   │   │   └── CrossChainMessageHandler.tsx # LayerZero messages
-│   │   ├── pages/                # 📄 Application Pages
+│   │   ├── pages/                #  Application Pages
 │   │   │   ├── Landing.tsx       # Landing page
 │   │   │   ├── Dashboard.tsx     # Main dashboard
 │   │   │   ├── Deposit.tsx       # SOL/USDC deposit interface
 │   │   │   ├── Withdraw.tsx      # SOL/USDC withdrawal interface
 │   │   │   ├── Strategies.tsx    # Strategy templates
 │   │   │   └── Analytics.tsx     # Performance analytics
-│   │   ├── hooks/                # 🪝 Custom React Hooks
+│   │   ├── hooks/                #  Custom React Hooks
 │   │   │   └── useOmniVault.ts   # Main state hook with USDC functions
-│   │   ├── services/             # 🔧 Blockchain Services
+│   │   ├── services/             #  Blockchain Services
 │   │   │   ├── omnivault.ts      # Core Solana program service
 │   │   │   ├── layerzero.ts      # LayerZero V2 implementation
 │   │   │   ├── layerzero-official.ts # LayerZero wrapper
@@ -157,34 +157,34 @@ OmniVault/
 │   │   │   ├── cctp-hooks.ts     # Hook automation builder
 │   │   │   ├── attestation-monitor.ts # Circle attestation polling
 │   │   │   └── hybrid-orchestrator.ts # Protocol routing logic
-│   │   ├── idl/                  # 📋 Generated IDL Types
+│   │   ├── idl/                  #  Generated IDL Types
 │   │   │   ├── omnivault.json    # Program interface definition
 │   │   │   └── omnivault.ts      # TypeScript types
-│   │   └── assets/               # 🖼️ Static assets
-│   └── package.json              # 📦 Frontend dependencies
+│   │   └── assets/               #  Static assets
+│   └── package.json              #  Frontend dependencies
 │
 ├── ⚓ solana-program/             # Solana program (smart contracts)
 │   ├── programs/
 │   │   └── omnivault/
 │   │       └── src/
-│   │           └── lib.rs        # 🦀 Main program with CCTP V2 support
-│   ├── tests/                    # 🧪 Program tests
+│   │           └── lib.rs        #  Main program with CCTP V2 support
+│   ├── tests/                    #  Program tests
 │   │   └── omnivault.ts          # Test suite
-│   ├── target/                   # 🎯 Build artifacts & IDL
-│   └── Anchor.toml               # ⚙️ Anchor configuration
+│   ├── target/                   #  Build artifacts & IDL
+│   └── Anchor.toml               #  Anchor configuration
 │
-├── 📜 scripts/                   # Deployment and utility scripts
-│   ├── deploy.sh                 # 🚀 Automated deployment
-│   ├── generate-idl.js           # 📋 IDL TypeScript generation
-│   └── test-usdc-operations.js   # 💵 USDC testing utility
+├──  scripts/                     # Deployment and utility scripts
+│   ├── deploy.sh                 #  Automated deployment
+│   ├── generate-idl.js           #  IDL TypeScript generation
+│   └── test-usdc-operations.js   #  USDC testing utility
 │
-├── 🐳 docker-compose.yml         # Local Solana test validator
-└── 📖 README.md                  # This file
+├──  docker-compose.yml           # Local Solana test validator
+└──  README.md                    # This file
 ```
 
-## 🚀 Quick Start
+##   Quick Start
 
-### 📋 Prerequisites
+###  Prerequisites
 
 - **Node.js 18+** and npm
 - **Rust** and Cargo
@@ -192,7 +192,7 @@ OmniVault/
 - **Anchor framework** v0.31+
 - **Solana wallet** with devnet SOL
 
-### 💻 Installation
+###  Installation
 
 1. **Clone the repository**
    ```bash
@@ -247,9 +247,9 @@ OmniVault/
 6. **Access the application**
    Open [http://localhost:5173](http://localhost:5173)
 
-## 🎮 User Guide
+##  User Guide
 
-### 🔥 Getting Started
+###  Getting Started
 
 1. **Connect Wallet** - Click "Connect Wallet" and select your Solana wallet
 2. **Initialize System** - One-time setup to initialize the vault store
@@ -258,9 +258,9 @@ OmniVault/
 5. **Monitor Performance** - Track yields across chains in real-time
 6. **Withdraw Funds** - Withdraw SOL or USDC anytime
 
-### 💰 Deposit Operations
+###  Deposit Operations
 
-#### Local Deposits (Same-chain)
+####  Local Deposits (Same-chain)
 1. Navigate to **Deposit** page
 2. Select your vault
 3. Choose token type:
@@ -269,7 +269,7 @@ OmniVault/
 4. Enter amount
 5. Click **Deposit**
 
-#### Cross-Chain USDC Deposits (New! ⚡)
+####  Cross-Chain USDC Deposits (New! ⚡)
 1. Select **USDC** as token
 2. Click **"Use Cross-Chain Deposit"**
 3. In the CCTP modal:
@@ -282,7 +282,7 @@ OmniVault/
 4. Confirm transaction
 5. Monitor attestation status in real-time
 
-### 💸 Withdrawal Operations
+###   Withdrawal Operations
 
 #### Local Withdrawals
 1. Navigate to **Withdraw** page
@@ -298,7 +298,7 @@ OmniVault/
 3. Select destination chain
 4. Confirm with optional Fast Transfer
 
-### 🪝 Automation Hooks (CCTP V2)
+###   Automation Hooks (CCTP V2)
 
 Enable automated actions after transfers:
 
@@ -309,7 +309,7 @@ Enable automated actions after transfers:
 | **Auto-Stake** | Stake idle funds | After deposit |
 | **Custom** | User-defined actions | Configurable |
 
-### 🛡️ Risk Profiles
+###   Risk Profiles
 
 | Profile | Risk | APY | Strategy | Chains |
 |---------|------|-----|----------|--------|
@@ -317,9 +317,9 @@ Enable automated actions after transfers:
 | 🟡 **Moderate** | Medium | 8-12% | Mixed strategies | Multi-chain |
 | 🔴 **Aggressive** | High | 12%+ | High-yield protocols | All chains |
 
-## 🔧 Technical Implementation
+##   Technical Implementation
 
-### 🏗️ Smart Contract Architecture
+###   Smart Contract Architecture
 
 #### Core Solana Program Instructions
 
@@ -395,7 +395,7 @@ pub struct HookRegistry {
 }
 ```
 
-### 🌉 Protocol Integration
+###   Protocol Integration
 
 #### CCTP V2 Service Layer
 
@@ -450,7 +450,7 @@ class HybridOrchestrator {
 }
 ```
 
-### 🔄 Transfer Flow
+###   Transfer Flow
 
 #### USDC Cross-Chain Deposit Flow
 
@@ -470,7 +470,7 @@ sequenceDiagram
     Frontend-->>User: Show success
 ```
 
-### 📊 Performance Metrics
+###   Performance Metrics
 
 | Operation | Protocol | Speed | Fee | Reliability |
 |-----------|----------|-------|-----|------------|
@@ -479,7 +479,7 @@ sequenceDiagram
 | Rebalance | CCTP V2 | <45s | 0.20% | 99.9% |
 | State Sync | LayerZero V2 | 3-5s | 0.001 SOL | 99.7% |
 
-## 🌐 Supported Chains & Domains
+##   Supported Chains & Domains
 
 ### CCTP V2 Domains
 | Chain | Domain ID | Status |
@@ -506,7 +506,7 @@ sequenceDiagram
 | Optimism | 111 | Yield, State |
 | Base | 184 | Yield, State |
 
-## 🔒 Security Features
+##   Security Features
 
 ### Smart Contract Security
 - ✅ **Anchor Framework** - Memory safety and type checking
@@ -528,7 +528,7 @@ sequenceDiagram
 - ✅ **Error Boundaries** - Graceful error handling
 - ✅ **Type Safety** - Full TypeScript coverage
 
-## 🧪 Testing
+##   Testing
 
 ### Run Tests
 ```bash
@@ -553,7 +553,7 @@ npm run test
 - ✅ Attestation monitoring
 - ✅ Protocol failover
 
-## 📈 Roadmap
+##   Roadmap
 
 ### ✅ Phase 1: Core Platform (Complete)
 - [x] Solana program with Anchor
@@ -571,7 +571,7 @@ npm run test
 - [x] Hybrid protocol orchestration
 - [x] Cross-chain USDC UI
 
-### 🚧 Phase 3: Enhanced Features (In Progress)
+###   Phase 3: Enhanced Features (In Progress)
 - [ ] Additional token support (USDT, wETH)
 - [ ] Advanced yield strategies
 - [ ] Limit orders
@@ -579,14 +579,14 @@ npm run test
 - [ ] Mobile app
 - [ ] Institutional features
 
-### 📋 Phase 4: Ecosystem Expansion
+###   Phase 4: Ecosystem Expansion
 - [ ] More chain integrations
 - [ ] Governance token ($OMNI)
 - [ ] DAO governance
 - [ ] Partner protocol integrations
 - [ ] Mainnet deployment
 
-## 🤝 Contributing
+##   Contributing
 
 We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) for details.
 
@@ -596,13 +596,13 @@ We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) f
 4. Add tests
 5. Submit a PR
 
-## 📞 Support 
+##   Support 
 
 - **Documentation**: See frontend README for detailed docs
 - **Discord**: [Join our community](https://discord.gg/omnivault)
 - **Issues**: [GitHub Issues](https://github.com/Ge0frey/Omnivault/issues)
 
-## 📄 License
+##   License
 
 MIT License - see [LICENSE](LICENSE) file for details.
 
@@ -610,7 +610,7 @@ MIT License - see [LICENSE](LICENSE) file for details.
 
 <div align="center">
 
-**🌟 Built for the future of cross-chain DeFi 🌟**
+**Built for the future of cross-chain DeFi**
 
 *Pioneering hybrid cross-chain architecture with LayerZero V2 and Circle CCTP V2 on Solana*
 
