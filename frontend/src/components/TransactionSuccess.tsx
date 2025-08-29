@@ -5,6 +5,7 @@ import {
   ClipboardDocumentCheckIcon,
   ArrowTopRightOnSquareIcon 
 } from '@heroicons/react/24/outline';
+import { getAllTransactionExplorerUrls } from '../utils/explorer';
 
 interface TransactionSuccessProps {
   signature: string;
@@ -36,19 +37,8 @@ export const TransactionSuccess: React.FC<TransactionSuccessProps> = ({
     return `${sig.slice(0, 8)}...${sig.slice(-8)}`;
   };
 
-  const getExplorerUrl = (explorer: string) => {
-    const baseUrls = {
-      solscan: 'https://solscan.io',
-      solanafm: 'https://solana.fm',
-      explorer: 'https://explorer.solana.com'
-    };
-    
-    // Determine network parameter based on environment
-    const isDevnet = import.meta.env.DEV;
-    const networkParam = isDevnet ? '?cluster=devnet' : '';
-    
-    return `${baseUrls[explorer as keyof typeof baseUrls]}/tx/${signature}${networkParam}`;
-  };
+  // Get all explorer URLs using the utility function
+  const explorerUrls = getAllTransactionExplorerUrls(signature);
 
   return (
     <div className="card border border-green-500/30 bg-green-500/5 relative overflow-hidden">
@@ -104,7 +94,7 @@ export const TransactionSuccess: React.FC<TransactionSuccessProps> = ({
               </label>
               <div className="flex flex-wrap gap-3">
                 <a
-                  href={getExplorerUrl('solscan')}
+                  href={explorerUrls.solscan}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="inline-flex items-center px-4 py-2 text-xs font-medium rounded-lg bg-blue-500/20 text-blue-300 border border-blue-500/30 hover:bg-blue-500/30 transition-all duration-300 group"
@@ -113,7 +103,7 @@ export const TransactionSuccess: React.FC<TransactionSuccessProps> = ({
                   <ArrowTopRightOnSquareIcon className="ml-2 h-3 w-3 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
                 </a>
                 <a
-                  href={getExplorerUrl('solanafm')}
+                  href={explorerUrls.solanafm}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="inline-flex items-center px-4 py-2 text-xs font-medium rounded-lg bg-purple-500/20 text-purple-300 border border-purple-500/30 hover:bg-purple-500/30 transition-all duration-300 group"
@@ -122,7 +112,7 @@ export const TransactionSuccess: React.FC<TransactionSuccessProps> = ({
                   <ArrowTopRightOnSquareIcon className="ml-2 h-3 w-3 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
                 </a>
                 <a
-                  href={getExplorerUrl('explorer')}
+                  href={explorerUrls.explorer}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="inline-flex items-center px-4 py-2 text-xs font-medium rounded-lg bg-gray-500/20 text-gray-300 border border-gray-500/30 hover:bg-gray-500/30 transition-all duration-300 group"
