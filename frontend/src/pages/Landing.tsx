@@ -4,22 +4,28 @@ import { ArrowRightIcon, ChartBarIcon, ShieldCheckIcon, GlobeAltIcon, SparklesIc
 
 const features = [
   {
-    name: 'Cross-Chain Optimization',
-    description: 'Automatically optimize your yield across multiple blockchains using LayerZero V2 technology with intelligent routing and real-time monitoring.',
-    icon: GlobeAltIcon,
+    name: '⚡ Lightning-Fast USDC Transfers',
+    description: 'Experience sub-30-second USDC transfers across chains with Circle\'s CCTP V2 integration. No more waiting hours for cross-chain movements.',
+    icon: CurrencyDollarIcon,
     gradient: 'from-blue-500 to-cyan-500'
+  },
+  {
+    name: 'Hybrid Cross-Chain Protocol',
+    description: 'Powered by both LayerZero V2 and Circle CCTP V2, ensuring optimal routes for all assets with intelligent protocol selection.',
+    icon: GlobeAltIcon,
+    gradient: 'from-purple-500 to-pink-500'
   },
   {
     name: 'Real-Time Analytics',
     description: 'Track your positions and performance with comprehensive analytics, advanced insights, and predictive yield forecasting.',
     icon: ChartBarIcon,
-    gradient: 'from-purple-500 to-pink-500'
+    gradient: 'from-green-500 to-emerald-500'
   },
   {
     name: 'Secure & Audited',
     description: 'Built with security-first principles, audited smart contracts, and enterprise-grade infrastructure for peace of mind.',
     icon: ShieldCheckIcon,
-    gradient: 'from-green-500 to-emerald-500'
+    gradient: 'from-orange-500 to-red-500'
   },
 ];
 
@@ -40,22 +46,22 @@ const howToSteps = [
   },
   {
     step: 3,
-    title: 'Deposit Funds',
-    description: 'Deposit SOL or supported tokens into your vault to start earning optimized yields.',
+    title: 'Deposit SOL or USDC',
+    description: 'Deposit SOL or USDC into your vault. USDC deposits support lightning-fast cross-chain transfers via CCTP V2.',
     icon: ArrowDownIcon,
     page: 'Deposit'
   },
   {
     step: 4,
-    title: 'Monitor Performance',
-    description: 'Track your yields, analyze performance, and watch your investments grow across chains.',
+    title: 'Monitor & Auto-Rebalance',
+    description: 'Track yields and let our system automatically rebalance using CCTP for USDC and LayerZero for other operations.',
     icon: EyeIcon,
     page: 'Analytics'
   },
   {
     step: 5,
-    title: 'Withdraw Anytime',
-    description: 'Access your funds whenever you need them with flexible withdrawal options.',
+    title: 'Withdraw Instantly',
+    description: 'Withdraw SOL or USDC anytime. Cross-chain USDC withdrawals complete in under 30 seconds via CCTP V2.',
     icon: ArrowUpIcon,
     page: 'Withdraw'
   }
@@ -64,35 +70,47 @@ const howToSteps = [
 const faqs = [
   {
     question: 'What is OmniVault?',
-    answer: 'OmniVault is a cross-chain yield optimization platform built on Solana using LayerZero V2. It automatically finds and moves your funds to the highest-yielding opportunities across multiple blockchains.'
+    answer: 'OmniVault is a hybrid cross-chain yield optimization platform built on Solana, combining LayerZero V2 for yield discovery and Circle CCTP V2 for lightning-fast USDC transfers. It automatically finds and moves your funds to the highest-yielding opportunities across multiple blockchains.'
   },
   {
-    question: 'How does cross-chain optimization work?',
-    answer: 'Our system continuously monitors yield opportunities across different blockchains and automatically rebalances your portfolio to maximize returns while managing risk according to your chosen profile.'
+    question: 'What is Circle CCTP V2 and how does it benefit me?',
+    answer: 'Circle\'s Cross-Chain Transfer Protocol (CCTP) V2 enables sub-30-second USDC transfers between chains through a burn-and-mint mechanism. This means your USDC moves almost instantly between chains, compared to traditional bridges that can take 15-60 minutes.'
+  },
+  {
+    question: 'How does the hybrid protocol system work?',
+    answer: 'We intelligently route operations: CCTP V2 handles all USDC transfers for speed (deposits, withdrawals, rebalancing), while LayerZero V2 manages yield discovery, state synchronization, and non-USDC operations. You get the best of both protocols automatically.'
+  },
+  {
+    question: 'What tokens can I deposit?',
+    answer: 'Currently, you can deposit SOL and USDC. USDC deposits benefit from our CCTP V2 integration for instant cross-chain transfers. USDT and other tokens are coming soon.'
+  },
+  {
+    question: 'How fast are cross-chain USDC transfers?',
+    answer: 'USDC transfers via CCTP V2 complete in under 30 seconds for amounts under $1M. This includes deposits from other chains (Ethereum, Arbitrum, Base, etc.) and withdrawals to any supported chain.'
   },
   {
     question: 'What are the different risk profiles?',
     answer: 'Conservative focuses on stable yields with lower risk, Moderate balances risk and return, and Aggressive targets higher yields with increased risk exposure.'
   },
   {
-    question: 'What tokens can I deposit?',
-    answer: 'Currently, you can deposit SOL, USDC, and USDT. We plan to support additional tokens based on community feedback and market demand.'
-  },
-  {
     question: 'Are there any fees?',
-    answer: 'Yes, there is a small performance fee on withdrawals to cover cross-chain operations and protocol maintenance. The exact fee is displayed before each transaction.'
+    answer: 'Yes, there is a 1% performance fee on withdrawals. CCTP fast transfers have a 0.15% fee, while standard transfers are 0.10%. All fees are transparently displayed before each transaction.'
   },
   {
     question: 'Is my money safe?',
-    answer: 'Security is our top priority. Our smart contracts are audited, and we follow industry best practices. However, DeFi involves inherent risks, so please only invest what you can afford to lose.'
+    answer: 'Security is our top priority. We use audited smart contracts, Circle\'s secure attestation service for CCTP, and LayerZero\'s decentralized verification. However, DeFi involves inherent risks, so please only invest what you can afford to lose.'
   },
   {
     question: 'Can I withdraw my funds anytime?',
-    answer: 'Yes, you can withdraw your funds at any time. Withdrawals are subject to a small fee and may take a few minutes to process across chains.'
+    answer: 'Yes, you can withdraw your funds at any time. USDC withdrawals via CCTP complete in under 30 seconds, while SOL withdrawals are instant on Solana.'
+  },
+  {
+    question: 'What chains are supported for CCTP transfers?',
+    answer: 'CCTP V2 supports Ethereum, Arbitrum, Optimism, Base, Polygon, Avalanche, Solana, Linea, Sonic, and World Chain. More chains are being added regularly.'
   },
   {
     question: 'How often does rebalancing occur?',
-    answer: 'Our system monitors opportunities continuously and triggers rebalancing when significantly better yields are detected, typically optimizing for both returns and gas costs.'
+    answer: 'Our system monitors opportunities continuously and triggers automatic rebalancing when yield improvements exceed 0.5%. USDC rebalancing via CCTP takes under 45 seconds total.'
   }
 ];
 
@@ -118,10 +136,16 @@ export const Landing = () => {
         <div className="mx-auto max-w-7xl mobile-padding">
           <div className="relative py-16 sm:py-24 lg:py-32 xl:py-40">
             <div className="text-center">
-              {/* Badge */}
-              <div className="inline-flex items-center px-3 py-2 sm:px-4 rounded-full glass-effect border border-white/20 mb-6 sm:mb-8">
-                <SparklesIcon className="h-3 w-3 sm:h-4 sm:w-4 text-accent-500 mr-2" />
-                <span className="text-xs sm:text-sm font-medium text-white">Powered by LayerZero V2</span>
+              {/* Badges */}
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-3 mb-6 sm:mb-8">
+                <div className="inline-flex items-center px-3 py-2 sm:px-4 rounded-full glass-effect border border-white/20">
+                  <SparklesIcon className="h-3 w-3 sm:h-4 sm:w-4 text-accent-500 mr-2" />
+                  <span className="text-xs sm:text-sm font-medium text-white">LayerZero V2</span>
+                </div>
+                <div className="inline-flex items-center px-3 py-2 sm:px-4 rounded-full glass-effect border border-blue-500/30 bg-blue-500/10">
+                  <CurrencyDollarIcon className="h-3 w-3 sm:h-4 sm:w-4 text-blue-400 mr-2" />
+                  <span className="text-xs sm:text-sm font-medium text-blue-300">Circle CCTP V2</span>
+                </div>
               </div>
 
               <h1 className="text-3xl sm:text-5xl lg:text-7xl font-bold tracking-tight text-white mb-4 sm:mb-6">
@@ -130,8 +154,8 @@ export const Landing = () => {
               </h1>
               
               <p className="mx-auto mt-6 sm:mt-8 max-w-3xl text-base sm:text-xl leading-7 sm:leading-8 text-gray-300 font-light px-4">
-                Maximize your DeFi yields across multiple blockchains with OmniVault's intelligent 
-                cross-chain optimization. Powered by LayerZero V2 for seamless omnichain experiences.
+                Maximize your DeFi yields across multiple blockchains with OmniVault's hybrid 
+                cross-chain optimization. Now featuring <span className="text-blue-400 font-medium">sub-30-second USDC transfers</span> via Circle CCTP V2.
               </p>
               
               <div className="mt-8 sm:mt-12 flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-6 px-4">
@@ -225,7 +249,7 @@ export const Landing = () => {
             </p>
           </div>
           
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 sm:gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8">
             {features.map((feature, _index) => (
               <div key={feature.name} className="card-elevated p-6 sm:p-8 group hover:scale-105 transition-all duration-500">
                 <div className="flex flex-col h-full">
