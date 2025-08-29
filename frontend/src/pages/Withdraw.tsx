@@ -639,36 +639,62 @@ export const Withdraw = () => {
           <h3 className="text-xl sm:text-2xl font-bold text-white mb-4 sm:mb-6 flex items-center">
             <ClockIcon className="h-6 w-6 sm:h-8 sm:w-8 mr-3 text-accent-500" />
             How Withdrawals Work
+            <span className="ml-auto text-xs sm:text-sm font-normal text-blue-400 bg-blue-500/10 px-3 py-1 rounded-full">
+              CCTP V2 Enabled ⚡
+            </span>
           </h3>
           
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8">
             <div className="text-center">
               <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-xl bg-gradient-to-r from-accent-500 to-accent-400 flex items-center justify-center mx-auto mb-3 sm:mb-4">
                 <span className="text-white font-bold text-lg sm:text-xl">1</span>
               </div>
-              <h4 className="font-semibold text-white mb-2 text-base sm:text-lg">Select & Confirm</h4>
+              <h4 className="font-semibold text-white mb-2 text-base sm:text-lg">Select Token</h4>
               <p className="text-gray-300 text-sm sm:text-base">
-                Choose your vault and specify the amount you want to withdraw.
+                Choose SOL for instant local withdrawal or USDC for cross-chain transfer.
+              </p>
+            </div>
+            
+            <div className="text-center">
+              <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-xl bg-gradient-to-r from-blue-500 to-blue-400 flex items-center justify-center mx-auto mb-3 sm:mb-4">
+                <span className="text-white font-bold text-lg sm:text-xl">2</span>
+              </div>
+              <h4 className="font-semibold text-white mb-2 text-base sm:text-lg">Fast USDC Transfer</h4>
+              <p className="text-gray-300 text-sm sm:text-base">
+                USDC withdrawals to any chain complete in <span className="text-blue-400 font-medium">under 30 seconds</span> via CCTP.
               </p>
             </div>
             
             <div className="text-center">
               <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-xl bg-gradient-to-r from-purple-500 to-purple-400 flex items-center justify-center mx-auto mb-3 sm:mb-4">
-                <span className="text-white font-bold text-lg sm:text-xl">2</span>
+                <span className="text-white font-bold text-lg sm:text-xl">3</span>
               </div>
-              <h4 className="font-semibold text-white mb-2 text-base sm:text-lg">Cross-Chain Processing</h4>
+              <h4 className="font-semibold text-white mb-2 text-base sm:text-lg">Smart Routing</h4>
               <p className="text-gray-300 text-sm sm:text-base">
-                Our system retrieves your funds from active chains and consolidates them.
+                System automatically uses optimal protocol: CCTP for USDC, direct for SOL.
               </p>
             </div>
             
-            <div className="text-center sm:col-span-2 lg:col-span-1">
+            <div className="text-center">
               <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-xl bg-gradient-to-r from-green-500 to-green-400 flex items-center justify-center mx-auto mb-3 sm:mb-4">
-                <span className="text-white font-bold text-lg sm:text-xl">3</span>
+                <span className="text-white font-bold text-lg sm:text-xl">4</span>
               </div>
               <h4 className="font-semibold text-white mb-2 text-base sm:text-lg">Receive Funds</h4>
               <p className="text-gray-300 text-sm sm:text-base">
-                Funds are transferred to your wallet minus a small processing fee.
+                Funds arrive in your wallet with transparent fees (1% performance fee).
+              </p>
+            </div>
+          </div>
+          
+          <div className="mt-6 space-y-3">
+            <div className="glass-effect p-4 sm:p-6 rounded-lg border border-blue-500/20">
+              <p className="text-sm sm:text-base text-gray-300">
+                <span className="text-blue-400 font-semibold">⚡ Instant Cross-Chain:</span> Withdraw USDC to Ethereum, Arbitrum, Base, or any supported chain in under 30 seconds using Circle's CCTP V2. No bridges, no wrapping, just native USDC.
+              </p>
+            </div>
+            <div className="glass-effect p-4 sm:p-6 rounded-lg border border-white/10">
+              <p className="text-sm sm:text-base text-gray-300">
+                <span className="text-accent-400 font-semibold">💡 Smart Tip:</span> For best rates, withdraw during low network congestion. USDC withdrawals via CCTP have fixed 0.15% fee regardless of amount.
               </p>
             </div>
           </div>
