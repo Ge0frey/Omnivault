@@ -3,7 +3,8 @@
 ## Access platform from - https://omnizerovault.vercel.app/
 
 # Quick links
-### Video demo link with commentary -  [https://youtu.be/wfsZKqv5FYo](https://youtu.be/tsJBWZ_YHMo)
+### Video demo link with commentary cctpV2 -  [https://youtu.be/wfsZKqv5FYo](https://youtu.be/tsJBWZ_YHMo)
+### Video demo link with commentary -  [https://youtu.be/wfsZKqv5FYo](https://youtu.be/wfsZKqv5FYo)
 
 
 > **Advanced cross-chain yield optimization platform built on Solana with LayerZero V2 and Circle CCTP V2 integration**
