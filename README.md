@@ -3,7 +3,7 @@
 ## Access platform from - https://omnizerovault.vercel.app/
 
 # Quick links
-### Video demo link with commentary cctpV2 -  [https://youtu.be/wfsZKqv5FYo](https://youtu.be/tsJBWZ_YHMo)
+### Video demo link with commentary cctpV2 -  [https://youtu.be/tsJBWZ_YHMo](https://youtu.be/tsJBWZ_YHMo)
 ### Video demo link with commentary -  [https://youtu.be/wfsZKqv5FYo](https://youtu.be/wfsZKqv5FYo)
 
 
