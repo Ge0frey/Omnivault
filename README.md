@@ -573,7 +573,7 @@ npm run test
 - [x] Cross-chain USDC UI
 
 ###   Phase 3: Enhanced Features (In Progress)
-- [ ] Additional token support (USDT, wETH)
+- [ ] Additional token support (USDT)
 - [ ] Advanced yield strategies
 - [ ] Limit orders
 - [ ] Portfolio rebalancing
@@ -600,7 +600,6 @@ We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) f
 ##   Support 
 
 - **Documentation**: See frontend README for detailed docs
-- **Discord**: [Join our community](https://discord.gg/omnivault)
 - **Issues**: [GitHub Issues](https://github.com/Ge0frey/Omnivault/issues)
 
 ##   License
